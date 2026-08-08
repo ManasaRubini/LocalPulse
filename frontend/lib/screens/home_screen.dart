@@ -81,7 +81,7 @@ class _HomeScreenState extends State<HomeScreen> {
               onNavigateTab: _onNavigateTab,
             );
           },
-          tooltip: "PulseAI Voice Assistant",
+          tooltip: "NammaCity Voice Assistant",
           child: const Icon(Icons.mic_rounded, color: Colors.white, size: 30),
         ),
       ),

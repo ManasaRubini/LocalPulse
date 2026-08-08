@@ -31,7 +31,7 @@ init_db()
 DEFAULT_GEMINI_API_KEY = ""
 
 app = FastAPI(
-    title="LocalPulse API",
+    title="NammaCity API",
     description="Community Issue Reporting & Local Discovery API",
     version="2.0.0"
 )
@@ -89,7 +89,7 @@ def haversine_km(lat1, lon1, lat2, lon2):
 @app.get("/")
 def root():
     return {
-        "app": "LocalPulse API",
+        "app": "NammaCity API",
         "version": "2.0.0",
         "status": "operational"
     }
@@ -558,7 +558,7 @@ def ai_chat(payload: dict):
 
     if not raw_query:
         return {
-            "reply": f"Vanakkam {user_name}! 😊 I'm PulseAI, your conversational civic companion. Ask me anything about reported issues, city amenities, or chat freely in Tanglish & English!",
+            "reply": f"Vanakkam {user_name}! 😊 I'm NammaCity AI, your conversational civic companion. Ask me anything about reported issues, city amenities, or chat freely in Tanglish & English!",
             "action": None,
             "payload": None,
             "suggestions": ["📊 What issues are in the app?", "💧 Any water leaks?", "🏥 Nearest hospital", "🏆 How does karma work?"]
@@ -612,7 +612,7 @@ def ai_chat(payload: dict):
             f"Top citizen: {top_citizens[0]['username'] if top_citizens else 'Citizen'}."
         )
         system_instruction = (
-            f"You are PulseAI, a real conversational AI companion for LocalPulse in Coimbatore, Tamil Nadu. "
+            f"You are NammaCity AI, a real conversational AI companion for NammaCity in Coimbatore, Tamil Nadu. "
             f"You speak natural English and Tanglish (Tamil in English alphabet, e.g. 'Vanakkam thalaiva!', 'Sema mass ah irukken!'). "
             f"You can answer ANY question freely (chit-chat, advice, civic issues, history, science, culture, coding, weather, food). "
             f"Live database context: {civic_context}. "
@@ -680,7 +680,7 @@ def ai_chat(payload: dict):
         if active_issues:
             issues_summary = "\n".join([f"• [{i['priority']} Priority] {i['title']} ({i['category']}) at {i['location']} - Status: {i['status']}" for i in active_issues[:4]])
             return {
-                "reply": f"Here is what's currently reported in LocalPulse:\n\n{issues_summary}\n\nWe have {len(active_issues)} active civic reports and {len(resolved_issues)} resolved issues in Coimbatore. Would you like me to filter for a specific category or help you report a new one?",
+                "reply": f"Here is what's currently reported in NammaCity:\n\n{issues_summary}\n\nWe have {len(active_issues)} active civic reports and {len(resolved_issues)} resolved issues in Coimbatore. Would you like me to filter for a specific category or help you report a new one?",
                 "action": "filter_category",
                 "payload": active_issues[0]["category"] if active_issues else "All",
                 "suggestions": ["📝 Report a new issue", "💧 Water issues", "🚧 Road hazards", "🏥 View on map"]
@@ -719,7 +719,7 @@ def ai_chat(payload: dict):
         if live_events:
             events_desc = "\n".join([f"• {e['title']} ({e['category']}) at {e['location']} on {e['time']}" for e in live_events])
             return {
-                "reply": f"Here are the upcoming community events in LocalPulse:\n\n{events_desc}\n\nOpening the Events tab so you can RSVP and join your neighbors!",
+                "reply": f"Here are the upcoming community events in NammaCity:\n\n{events_desc}\n\nOpening the Events tab so you can RSVP and join your neighbors!",
                 "action": "open_events",
                 "payload": None,
                 "suggestions": ["🌳 Host a new drive", "👥 Check attendees", "📍 Venue directions"]
@@ -813,7 +813,7 @@ def ai_chat(payload: dict):
 
     # Open-Ended Conversational Response (Context-Aware)
     return {
-        "reply": f"Purinjukitten {user_name}! 😊 You asked: \"{raw_query}\". As your Coimbatore civic AI, I have live access to our database ({len(active_issues)} active reports, {len(live_events)} events). Ask me about any civic issue, hospital locations, or Tanglish questions!",
+        "reply": f"Purinjukitten {user_name}! 😊 You asked: \"{raw_query}\". As your Coimbatore NammaCity AI, I have live access to our database ({len(active_issues)} active reports, {len(live_events)} events). Ask me about any civic issue, hospital locations, or Tanglish questions!",
         "action": None,
         "payload": None,
         "suggestions": ["📊 What issues are in the app?", "💧 Water issues", "🚧 Road hazards", "🏥 Nearest hospital"]

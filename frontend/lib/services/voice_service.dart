@@ -175,9 +175,9 @@ class PulseAIService {
 
     if (q.contains("vanakkam") || q.contains("hello") || q.contains("hi") || q.contains("hey") || q.startsWith("morning") || q.contains("good morning")) {
       return PulseAIResponse(
-        text: "Vanakkam & Hello there! 😊 It's wonderful to connect with you. I'm PulseAI (Powered by Google Gemini ✨), your friendly civic companion in Coimbatore. How are things in your neighborhood today?",
+        text: "Vanakkam & Hello there! 😊 It's wonderful to connect with you. I'm NammaCity AI, your friendly civic companion in Coimbatore. How are things in your neighborhood today?",
         followUpSuggestions: ["💧 Any water issues?", "🚧 Report road damage", "🏥 Nearest hospital", "🏆 How does karma work?"],
-        engine: "Google Gemini 1.5 Flash ✨",
+        engine: "NammaCity AI ✨",
       );
     }
 
@@ -265,9 +265,9 @@ class PulseAIService {
 
     // Default friendly bilingual response
     return PulseAIResponse(
-      text: "I'm listening! 💬 (Powered by Google Gemini ✨) Nan Tanglish & English rendulayum purinjupen. You can ask: 'Thanni leak aagudhu', 'Nearest hospital', 'Road la pallam', 'Blood donation camp', or 'Emergency police'. Epdi help pannattum thalaiva?",
+      text: "I'm listening! 💬 Nan NammaCity AI. Tanglish & English rendulayum purinjupen. You can ask: 'Thanni leak aagudhu', 'Nearest hospital', 'Road la pallam', 'Blood donation camp', or 'Emergency police'. Epdi help pannattum thalaiva?",
       followUpSuggestions: ["💧 Thanni leak aagudhu", "🏥 Nearest hospital", "📝 Report an issue", "🏆 Karma epdi kedaikkum?"],
-      engine: "Google Gemini 1.5 Flash ✨",
+      engine: "NammaCity AI ✨",
     );
   }
 }

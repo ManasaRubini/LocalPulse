@@ -78,7 +78,7 @@ class _FeedScreenState extends State<FeedScreen> {
             ),
             const SizedBox(width: 10),
             const Text(
-              "LocalPulse",
+              "NammaCity",
               style: TextStyle(
                 color: AppColors.textPrimary,
                 fontWeight: FontWeight.bold,

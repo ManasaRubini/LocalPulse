@@ -11,17 +11,17 @@ void main() {
       statusBarIconBrightness: Brightness.dark,
     ),
   );
-  runApp(const LocalPulseApp());
+  runApp(const NammaCityApp());
 }
 
-class LocalPulseApp extends StatelessWidget {
-  const LocalPulseApp({super.key});
+class NammaCityApp extends StatelessWidget {
+  const NammaCityApp({super.key});
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      title: "LocalPulse",
+      title: "NammaCity",
       theme: ThemeData(
         useMaterial3: true,
         colorScheme: ColorScheme.fromSeed(

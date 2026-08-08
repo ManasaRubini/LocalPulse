@@ -90,9 +90,9 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
                   ),
                   const SizedBox(height: 20),
                   const Text(
-                    "LocalPulse",
+                    "NammaCity",
                     style: TextStyle(
-                      fontSize: 32,
+                      fontSize: 34,
                       fontWeight: FontWeight.bold,
                       color: Colors.white,
                       letterSpacing: 0.5,
@@ -100,7 +100,7 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
                   ),
                   const SizedBox(height: 6),
                   const Text(
-                    "Real-Time Civic Reporting & Community Pulse",
+                    "Real-Time Civic Discovery & Neighborhood Action",
                     style: TextStyle(
                       fontSize: 13,
                       color: Colors.white70,

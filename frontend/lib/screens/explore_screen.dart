@@ -95,7 +95,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
 
     final url = Uri.parse("https://nominatim.openstreetmap.org/search?q=${Uri.encodeComponent(q)}&format=json&limit=1");
     try {
-      final res = await http.get(url, headers: {"User-Agent": "LocalPulse-CivicApp/2.0"}).timeout(const Duration(seconds: 6));
+      final res = await http.get(url, headers: {"User-Agent": "NammaCity-CivicApp/2.0"}).timeout(const Duration(seconds: 6));
       if (res.statusCode == 200) {
         final data = jsonDecode(res.body);
         if (data is List && data.isNotEmpty) {
@@ -375,7 +375,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
             children: [
               TileLayer(
                 urlTemplate: "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
-                userAgentPackageName: "com.localpulse.app",
+                userAgentPackageName: "com.nammacity.app",
                 evictErrorTileStrategy: EvictErrorTileStrategy.dispose,
               ),
               MarkerLayer(

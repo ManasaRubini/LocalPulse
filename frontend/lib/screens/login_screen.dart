@@ -137,12 +137,12 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
                 const SizedBox(height: 18),
                 Text(
-                  isLoginMode ? "Welcome to LocalPulse" : "Join Your Neighborhood",
+                  isLoginMode ? "Welcome to NammaCity" : "Join NammaCity Community",
                   style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
                 ),
                 const SizedBox(height: 6),
                 Text(
-                  isLoginMode ? "Real-time civic issue reporting & community pulse" : "Connect with local citizens and civic authorities",
+                  isLoginMode ? "Real-time civic discovery & neighborhood action" : "Connect with local citizens and civic authorities",
                   textAlign: TextAlign.center,
                   style: const TextStyle(color: AppColors.textSecondary, fontSize: 13),
                 ),
@@ -205,7 +205,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           child: isLoading
                               ? const SizedBox(width: 22, height: 22, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
                               : Text(
-                                  isLoginMode ? "Enter LocalPulse" : "Create Citizen Profile",
+                                  isLoginMode ? "Enter NammaCity" : "Create Citizen Profile",
                                   style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                                 ),
                         ),

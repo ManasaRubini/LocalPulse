@@ -327,7 +327,7 @@ class _VoiceAssistantModalState extends State<VoiceAssistantModal> with SingleTi
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     const Text(
-                      "PulseAI Assistant",
+                      "NammaCity Assistant",
                       style: TextStyle(fontWeight: FontWeight.bold, fontSize: 17, color: AppColors.textPrimary),
                     ),
                     Text(
@@ -401,7 +401,7 @@ class _VoiceAssistantModalState extends State<VoiceAssistantModal> with SingleTi
                     controller: _queryController,
                     onSubmitted: _handleQuery,
                     decoration: InputDecoration(
-                      hintText: isListening ? "Listening... speak now" : "Ask Gemini anything (e.g. 'hospital la ethavathu prachanaya')...",
+                      hintText: isListening ? "Listening... speak now" : "Ask NammaCity AI anything (Tanglish or English)...",
                       hintStyle: TextStyle(
                         color: isListening ? AppColors.alert : AppColors.textMuted,
                         fontSize: 13,
@@ -460,7 +460,7 @@ class _VoiceAssistantModalState extends State<VoiceAssistantModal> with SingleTi
                 children: [
                   SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.primary)),
                   SizedBox(width: 10),
-                  Text("Google Gemini is thinking...", style: TextStyle(fontSize: 13, color: AppColors.textSecondary, fontStyle: FontStyle.italic)),
+                  Text("NammaCity AI is thinking...", style: TextStyle(fontSize: 13, color: AppColors.textSecondary, fontStyle: FontStyle.italic)),
                 ],
               ),
             ),
@@ -483,7 +483,7 @@ class _VoiceAssistantModalState extends State<VoiceAssistantModal> with SingleTi
             const SizedBox(height: 12),
             const Text("No chat history yet!", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
             const SizedBox(height: 4),
-            const Text("Ask questions to Gemini to build your conversational history.", style: TextStyle(color: AppColors.textSecondary, fontSize: 12)),
+            const Text("Ask questions to NammaCity AI to build your conversational history.", style: TextStyle(color: AppColors.textSecondary, fontSize: 12)),
           ],
         ),
       );
