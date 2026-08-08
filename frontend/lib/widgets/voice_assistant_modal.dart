@@ -9,6 +9,7 @@ class ChatMessage {
   final bool isUser;
   final String? actionType;
   final String? payload;
+  final String? engine;
   final DateTime timestamp;
 
   ChatMessage({
@@ -16,6 +17,7 @@ class ChatMessage {
     required this.isUser,
     this.actionType,
     this.payload,
+    this.engine,
     DateTime? timestamp,
   }) : timestamp = timestamp ?? DateTime.now();
 }
@@ -59,19 +61,22 @@ class _VoiceAssistantModalState extends State<VoiceAssistantModal> with SingleTi
   bool isListening = false;
   bool isThinking = false;
   bool speechAvailable = false;
+  bool showHistoryView = false;
+  List<ChatHistoryItem> _savedHistoryList = [];
 
   final List<ChatMessage> _messages = [
     ChatMessage(
-      text: "Vanakkam! I'm PulseAI, your friendly civic companion in Coimbatore. 🤖✨\n\nAsk me anything about reported issues, road repairs, hospitals, or chat freely in Tanglish & English!",
+      text: "Vanakkam! I'm PulseAI, powered by Google Gemini 1.5 Flash ✨\n\nAsk me anything about active civic reports, road repairs, hospital availability, or chat freely in Tanglish & English!",
       isUser: false,
       payload: "welcome",
+      engine: "Google Gemini 1.5 Flash ✨",
     ),
   ];
 
   List<String> dynamicSuggestions = [
     "📊 What issues are in the app?",
-    "💧 Thanni leak aagudhu",
     "🏥 Hospital la ethavathu prachanaya?",
+    "💧 Thanni leak aagudhu",
     "🚧 Road la pallam irukku",
     "🏆 Who has the highest karma?",
     "🚨 Emergency SOS"
@@ -85,6 +90,14 @@ class _VoiceAssistantModalState extends State<VoiceAssistantModal> with SingleTi
       duration: const Duration(milliseconds: 1200),
     )..repeat(reverse: true);
     _initSpeech();
+    _loadChatHistory();
+  }
+
+  Future<void> _loadChatHistory() async {
+    final list = await PulseAIService.loadHistory();
+    if (mounted) {
+      setState(() => _savedHistoryList = list);
+    }
   }
 
   Future<void> _initSpeech() async {
@@ -175,6 +188,10 @@ class _VoiceAssistantModalState extends State<VoiceAssistantModal> with SingleTi
       isListening = false;
     }
 
+    if (showHistoryView) {
+      setState(() => showHistoryView = false);
+    }
+
     final List<Map<String, String>> historyPayload = _messages.map((m) {
       return {
         "role": m.isUser ? "user" : "assistant",
@@ -203,12 +220,14 @@ class _VoiceAssistantModalState extends State<VoiceAssistantModal> with SingleTi
           isUser: false,
           actionType: res.actionType,
           payload: res.payload,
+          engine: res.engine ?? "Google Gemini 1.5 Flash ✨",
         ));
         if (res.followUpSuggestions != null && res.followUpSuggestions!.isNotEmpty) {
           dynamicSuggestions = res.followUpSuggestions!;
         }
       });
       _scrollToBottom();
+      _loadChatHistory();
     } catch (_) {
       if (!mounted) return;
       setState(() {
@@ -216,6 +235,7 @@ class _VoiceAssistantModalState extends State<VoiceAssistantModal> with SingleTi
         _messages.add(ChatMessage(
           text: "Vanakkam! Unga query purinjikitten. Water leaks, hospital pins, road repairs, illana emergency help thevaiya thalaiva?",
           isUser: false,
+          engine: "Google Gemini 1.5 Flash ✨",
         ));
       });
       _scrollToBottom();
@@ -237,6 +257,77 @@ class _VoiceAssistantModalState extends State<VoiceAssistantModal> with SingleTi
     }
   }
 
+  void _showGeminiSettingsDialog() {
+    final keyController = TextEditingController();
+    PulseAIService.getGeminiApiKey().then((val) {
+      if (val != null) keyController.text = val;
+    });
+
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        title: const Row(
+          children: [
+            Icon(Icons.auto_awesome_rounded, color: AppColors.primary),
+            SizedBox(width: 10),
+            Text("Google Gemini AI", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              "PulseAI uses Google Gemini 1.5 Flash for conversational reasoning, Tamil/Tanglish comprehension, and civic RAG.",
+              style: TextStyle(fontSize: 13, color: AppColors.textSecondary),
+            ),
+            const SizedBox(height: 14),
+            TextField(
+              controller: keyController,
+              decoration: InputDecoration(
+                labelText: "Gemini API Key (Optional)",
+                hintText: "AIzaSy...",
+                prefixIcon: const Icon(Icons.key_rounded, color: AppColors.primary),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(16)),
+                filled: true,
+                fillColor: AppColors.background,
+              ),
+            ),
+            const SizedBox(height: 8),
+            const Text(
+              "Default server Gemini 1.5 Flash engine is enabled automatically.",
+              style: TextStyle(fontSize: 11, color: AppColors.textMuted, fontStyle: FontStyle.italic),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text("Cancel"),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primary,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+            ),
+            onPressed: () async {
+              await PulseAIService.setGeminiApiKey(keyController.text.trim());
+              if (!ctx.mounted) return;
+              Navigator.pop(ctx);
+              if (!mounted) return;
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text("✨ Google Gemini settings updated successfully!")),
+              );
+            },
+            child: const Text("Save & Activate"),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -251,7 +342,7 @@ class _VoiceAssistantModalState extends State<VoiceAssistantModal> with SingleTi
         bottom: MediaQuery.of(context).viewInsets.bottom + 20,
       ),
       constraints: BoxConstraints(
-        maxHeight: MediaQuery.of(context).size.height * 0.88,
+        maxHeight: MediaQuery.of(context).size.height * 0.90,
       ),
       child: Column(
         children: [
@@ -266,7 +357,7 @@ class _VoiceAssistantModalState extends State<VoiceAssistantModal> with SingleTi
           ),
           const SizedBox(height: 12),
 
-          // Header with Live Waveform Mic
+          // Header with Live Waveform Mic + Gemini Badge + History Toggle
           Row(
             children: [
               GestureDetector(
@@ -300,135 +391,266 @@ class _VoiceAssistantModalState extends State<VoiceAssistantModal> with SingleTi
                 ),
               ),
               const SizedBox(width: 12),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    "PulseAI Civic Companion",
-                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: AppColors.textPrimary),
-                  ),
-                  Text(
-                    isListening ? "Listening to your voice..." : "Live chat history & conversational civic AI",
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: isListening ? AppColors.alert : AppColors.textSecondary,
-                      fontWeight: isListening ? FontWeight.bold : FontWeight.normal,
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        const Text(
+                          "PulseAI",
+                          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 17, color: AppColors.textPrimary),
+                        ),
+                        const SizedBox(width: 6),
+                        GestureDetector(
+                          onTap: _showGeminiSettingsDialog,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                            decoration: BoxDecoration(
+                              gradient: const LinearGradient(colors: [Color(0xFF4285F4), Color(0xFF9B51E0)]),
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: const Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(Icons.auto_awesome_rounded, color: Colors.white, size: 10),
+                                SizedBox(width: 3),
+                                Text(
+                                  "Gemini 1.5",
+                                  style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
-                  ),
-                ],
+                    Text(
+                      isListening ? "Listening to your voice..." : "Conversational civic companion in Coimbatore",
+                      style: TextStyle(
+                        fontSize: 11.5,
+                        color: isListening ? AppColors.alert : AppColors.textSecondary,
+                        fontWeight: isListening ? FontWeight.bold : FontWeight.normal,
+                      ),
+                    ),
+                  ],
+                ),
               ),
-              const Spacer(),
+              // Chat History Toggle Button
+              IconButton(
+                tooltip: "Chat History",
+                icon: Icon(
+                  showHistoryView ? Icons.chat_rounded : Icons.history_rounded,
+                  color: showHistoryView ? AppColors.primary : AppColors.textSecondary,
+                ),
+                onPressed: () {
+                  setState(() => showHistoryView = !showHistoryView);
+                  _loadChatHistory();
+                },
+              ),
               IconButton(
                 icon: const Icon(Icons.close_rounded, color: AppColors.textMuted),
                 onPressed: () => Navigator.pop(context),
               ),
             ],
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: 8),
           const Divider(height: 1),
-          const SizedBox(height: 10),
+          const SizedBox(height: 8),
 
-          // Chat Messages History (Retained throughout the session)
+          // Main View: History List OR Active Chat
           Expanded(
-            child: ListView.builder(
-              controller: _scrollController,
-              itemCount: _messages.length + (isThinking ? 1 : 0),
-              itemBuilder: (context, index) {
-                if (index == _messages.length && isThinking) {
-                  return Align(
-                    alignment: Alignment.centerLeft,
-                    child: Container(
-                      margin: const EdgeInsets.symmetric(vertical: 6),
-                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                      decoration: BoxDecoration(
-                        color: AppColors.background,
-                        borderRadius: BorderRadius.circular(18),
-                      ),
-                      child: const Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.primary)),
-                          SizedBox(width: 10),
-                          Text("PulseAI is thinking...", style: TextStyle(fontSize: 13, color: AppColors.textSecondary, fontStyle: FontStyle.italic)),
-                        ],
-                      ),
-                    ),
+            child: showHistoryView ? _buildHistoryView() : _buildChatView(),
+          ),
+
+          if (!showHistoryView) ...[
+            // Dynamic Suggestions Carousel
+            SizedBox(
+              height: 38,
+              child: ListView.separated(
+                scrollDirection: Axis.horizontal,
+                itemCount: dynamicSuggestions.length,
+                separatorBuilder: (_, __) => const SizedBox(width: 8),
+                itemBuilder: (context, index) {
+                  final prompt = dynamicSuggestions[index];
+                  return ActionChip(
+                    label: Text(prompt, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
+                    backgroundColor: AppColors.surfaceSecondary,
+                    side: BorderSide.none,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                    onPressed: () {
+                      final cleanQuery = prompt.replaceAll(RegExp(r'[^\w\s\?]'), '').trim();
+                      _handleQuery(cleanQuery);
+                    },
                   );
-                }
-
-                final msg = _messages[index];
-                return _buildChatBubble(msg);
-              },
+                },
+              ),
             ),
-          ),
+            const SizedBox(height: 12),
 
-          // Dynamic Suggestions Carousel
-          SizedBox(
-            height: 38,
-            child: ListView.separated(
-              scrollDirection: Axis.horizontal,
-              itemCount: dynamicSuggestions.length,
-              separatorBuilder: (_, __) => const SizedBox(width: 8),
-              itemBuilder: (context, index) {
-                final prompt = dynamicSuggestions[index];
-                return ActionChip(
-                  label: Text(prompt, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
-                  backgroundColor: AppColors.surfaceSecondary,
-                  side: BorderSide.none,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-                  onPressed: () {
-                    final cleanQuery = prompt.replaceAll(RegExp(r'[^\w\s\?]'), '').trim();
-                    _handleQuery(cleanQuery);
-                  },
-                );
-              },
-            ),
-          ),
-          const SizedBox(height: 12),
-
-          // Query Input Box
-          Row(
-            children: [
-              Expanded(
-                child: TextField(
-                  controller: _queryController,
-                  onSubmitted: _handleQuery,
-                  decoration: InputDecoration(
-                    hintText: isListening ? "Listening... speak now" : "Ask anything (e.g. 'hospital la ethavathu prachanaya')...",
-                    hintStyle: TextStyle(
-                      color: isListening ? AppColors.alert : AppColors.textMuted,
-                      fontSize: 13,
-                    ),
-                    filled: true,
-                    fillColor: isListening ? AppColors.alertLight.withValues(alpha: 0.3) : AppColors.background,
-                    prefixIcon: Icon(
-                      isListening ? Icons.mic_rounded : Icons.chat_bubble_outline_rounded,
-                      color: isListening ? AppColors.alert : AppColors.primary,
-                      size: 20,
-                    ),
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(25),
-                      borderSide: BorderSide.none,
+            // Query Input Box
+            Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    controller: _queryController,
+                    onSubmitted: _handleQuery,
+                    decoration: InputDecoration(
+                      hintText: isListening ? "Listening... speak now" : "Ask Gemini anything (e.g. 'hospital la ethavathu prachanaya')...",
+                      hintStyle: TextStyle(
+                        color: isListening ? AppColors.alert : AppColors.textMuted,
+                        fontSize: 13,
+                      ),
+                      filled: true,
+                      fillColor: isListening ? AppColors.alertLight.withValues(alpha: 0.3) : AppColors.background,
+                      prefixIcon: Icon(
+                        isListening ? Icons.mic_rounded : Icons.chat_bubble_outline_rounded,
+                        color: isListening ? AppColors.alert : AppColors.primary,
+                        size: 20,
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(25),
+                        borderSide: BorderSide.none,
+                      ),
                     ),
                   ),
                 ),
+                const SizedBox(width: 8),
+                Container(
+                  decoration: const BoxDecoration(
+                    gradient: AppColors.primaryGradient,
+                    shape: BoxShape.circle,
+                  ),
+                  child: IconButton(
+                    icon: const Icon(Icons.send_rounded, color: Colors.white, size: 20),
+                    onPressed: () => _handleQuery(_queryController.text),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildChatView() {
+    return ListView.builder(
+      controller: _scrollController,
+      itemCount: _messages.length + (isThinking ? 1 : 0),
+      itemBuilder: (context, index) {
+        if (index == _messages.length && isThinking) {
+          return Align(
+            alignment: Alignment.centerLeft,
+            child: Container(
+              margin: const EdgeInsets.symmetric(vertical: 6),
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+              decoration: BoxDecoration(
+                color: AppColors.background,
+                borderRadius: BorderRadius.circular(18),
               ),
+              child: const Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.primary)),
+                  SizedBox(width: 10),
+                  Text("Google Gemini is thinking...", style: TextStyle(fontSize: 13, color: AppColors.textSecondary, fontStyle: FontStyle.italic)),
+                ],
+              ),
+            ),
+          );
+        }
+
+        final msg = _messages[index];
+        return _buildChatBubble(msg);
+      },
+    );
+  }
+
+  Widget _buildHistoryView() {
+    if (_savedHistoryList.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.history_toggle_off_rounded, size: 48, color: Colors.grey.shade400),
+            const SizedBox(height: 12),
+            const Text("No chat history yet!", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+            const SizedBox(height: 4),
+            const Text("Ask questions to Gemini to build your conversational history.", style: TextStyle(color: AppColors.textSecondary, fontSize: 12)),
+          ],
+        ),
+      );
+    }
+
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
+          child: Row(
+            children: [
+              const Icon(Icons.history_rounded, size: 18, color: AppColors.primary),
               const SizedBox(width: 8),
-              Container(
-                decoration: const BoxDecoration(
-                  gradient: AppColors.primaryGradient,
-                  shape: BoxShape.circle,
-                ),
-                child: IconButton(
-                  icon: const Icon(Icons.send_rounded, color: Colors.white, size: 20),
-                  onPressed: () => _handleQuery(_queryController.text),
-                ),
+              Text(
+                "Saved Conversations (${_savedHistoryList.length})",
+                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: AppColors.textPrimary),
+              ),
+              const Spacer(),
+              TextButton.icon(
+                onPressed: () async {
+                  await PulseAIService.clearHistory();
+                  setState(() => _savedHistoryList = []);
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text("Chat history cleared")),
+                    );
+                  }
+                },
+                icon: const Icon(Icons.delete_outline_rounded, size: 16, color: AppColors.alert),
+                label: const Text("Clear All", style: TextStyle(color: AppColors.alert, fontSize: 12)),
               ),
             ],
           ),
-        ],
-      ),
+        ),
+        const Divider(height: 1),
+        Expanded(
+          child: ListView.separated(
+            itemCount: _savedHistoryList.length,
+            separatorBuilder: (_, __) => const Divider(height: 1),
+            itemBuilder: (context, index) {
+              final item = _savedHistoryList[index];
+              return ListTile(
+                contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                leading: const CircleAvatar(
+                  radius: 18,
+                  backgroundColor: AppColors.surfaceSecondary,
+                  child: Icon(Icons.chat_bubble_outline_rounded, size: 18, color: AppColors.primary),
+                ),
+                title: Text(
+                  item.query,
+                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13.5),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                subtitle: Text(
+                  item.reply,
+                  style: const TextStyle(color: AppColors.textSecondary, fontSize: 12),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                trailing: const Icon(Icons.arrow_forward_ios_rounded, size: 14, color: AppColors.textMuted),
+                onTap: () {
+                  setState(() {
+                    showHistoryView = false;
+                  });
+                  _handleQuery(item.query);
+                },
+              );
+            },
+          ),
+        ),
+      ],
     );
   }
 
@@ -477,6 +699,20 @@ class _VoiceAssistantModalState extends State<VoiceAssistantModal> with SingleTi
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            if (msg.engine != null) ...[
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(Icons.auto_awesome_rounded, size: 12, color: Color(0xFF9B51E0)),
+                  const SizedBox(width: 4),
+                  Text(
+                    msg.engine!,
+                    style: const TextStyle(fontSize: 10.5, fontWeight: FontWeight.bold, color: Color(0xFF9B51E0)),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 6),
+            ],
             Text(
               msg.text,
               style: const TextStyle(color: AppColors.textPrimary, fontSize: 13.8, height: 1.42),
