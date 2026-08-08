@@ -18,7 +18,7 @@ class _HomeScreenState extends State<HomeScreen> {
   int currentIndex = 0;
   String? feedCategoryFilter;
 
-  late List<Widget> pages;
+  String? exploreSubType;
 
   @override
   void initState() {
@@ -29,7 +29,7 @@ class _HomeScreenState extends State<HomeScreen> {
   void _initPages() {
     pages = [
       FeedScreen(initialCategoryFilter: feedCategoryFilter),
-      const ExploreScreen(),
+      ExploreScreen(initialType: exploreSubType),
       const ReportScreen(),
       const EventsScreen(),
       const ProfileScreen(),
@@ -44,8 +44,12 @@ class _HomeScreenState extends State<HomeScreen> {
     });
   }
 
-  void _onNavigateTab(int index) {
+  void _onNavigateTab(int index, {String? subType}) {
     setState(() {
+      if (index == 1 && subType != null) {
+        exploreSubType = subType;
+        _initPages();
+      }
       currentIndex = index;
     });
   }
