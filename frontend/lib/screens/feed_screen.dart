@@ -69,9 +69,10 @@ class _FeedScreenState extends State<FeedScreen> {
           children: [
             Container(
               padding: const EdgeInsets.all(8),
-              decoration: const BoxDecoration(
+              decoration: BoxDecoration(
                 gradient: AppColors.primaryGradient,
                 shape: BoxShape.circle,
+                boxShadow: AppColors.primaryGlow,
               ),
               child: const Icon(Icons.hub_rounded, color: Colors.white, size: 20),
             ),
@@ -88,15 +89,16 @@ class _FeedScreenState extends State<FeedScreen> {
           ],
         ),
         actions: [
-          // Emergency SOS Quick Button
+          // Emergency SOS Quick Button with Coral Glow
           Container(
             margin: const EdgeInsets.only(right: 8),
             child: ElevatedButton.icon(
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.alert,
                 foregroundColor: Colors.white,
-                elevation: 0,
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                elevation: 3,
+                shadowColor: AppColors.alert.withValues(alpha: 0.4),
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
               ),
               onPressed: () => EmergencySOSSheet.show(context),
@@ -131,10 +133,10 @@ class _FeedScreenState extends State<FeedScreen> {
 
                 return Container(
                   margin: const EdgeInsets.fromLTRB(16, 12, 16, 8),
-                  padding: const EdgeInsets.all(16),
+                  padding: const EdgeInsets.all(18),
                   decoration: BoxDecoration(
                     gradient: AppColors.primaryGradient,
-                    borderRadius: BorderRadius.circular(22),
+                    borderRadius: BorderRadius.circular(24),
                     boxShadow: AppColors.primaryGlow,
                   ),
                   child: Column(
@@ -144,14 +146,14 @@ class _FeedScreenState extends State<FeedScreen> {
                         children: [
                           const Row(
                             children: [
-                              Icon(Icons.bolt_rounded, color: Colors.amber, size: 20),
+                              Icon(Icons.bolt_rounded, color: Colors.amber, size: 22),
                               SizedBox(width: 6),
                               Text(
                                 "Live Civic Pulse",
                                 style: TextStyle(
                                   color: Colors.white,
                                   fontWeight: FontWeight.bold,
-                                  fontSize: 16,
+                                  fontSize: 17,
                                 ),
                               ),
                             ],
@@ -159,24 +161,25 @@ class _FeedScreenState extends State<FeedScreen> {
                           Container(
                             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                             decoration: BoxDecoration(
-                              color: Colors.white.withValues(alpha: 0.2),
+                              color: Colors.white.withValues(alpha: 0.22),
                               borderRadius: BorderRadius.circular(14),
+                              border: Border.all(color: Colors.white.withValues(alpha: 0.3)),
                             ),
                             child: const Text(
-                              "Active Wards",
+                              "Coimbatore Wards",
                               style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold),
                             ),
                           ),
                         ],
                       ),
-                      const SizedBox(height: 14),
+                      const SizedBox(height: 16),
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceAround,
                         children: [
                           _pulseStatItem("${stats['active_issues']}", "Active Reports", Icons.pending_actions_rounded),
-                          Container(height: 30, width: 1, color: Colors.white24),
+                          Container(height: 32, width: 1, color: Colors.white24),
                           _pulseStatItem("${stats['resolved_rate_percent']}%", "Resolved Rate", Icons.task_alt_rounded),
-                          Container(height: 30, width: 1, color: Colors.white24),
+                          Container(height: 32, width: 1, color: Colors.white24),
                           _pulseStatItem("${stats['civic_health_index']}", "Civic Score", Icons.favorite_rounded),
                         ],
                       ),
@@ -187,15 +190,16 @@ class _FeedScreenState extends State<FeedScreen> {
             ),
 
             // ==========================================
-            // SEARCH BAR
+            // SEARCH BAR WITH GLASS EFFECT
             // ==========================================
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
               child: Container(
                 decoration: BoxDecoration(
                   color: Colors.white,
-                  borderRadius: BorderRadius.circular(20),
+                  borderRadius: BorderRadius.circular(22),
                   boxShadow: AppColors.softShadow,
+                  border: Border.all(color: Colors.grey.shade100),
                 ),
                 child: TextField(
                   controller: searchController,
@@ -212,7 +216,7 @@ class _FeedScreenState extends State<FeedScreen> {
                             },
                           )
                         : null,
-                    hintText: "Search issues by location, title or tag...",
+                    hintText: "Search issues by location, title or keyword...",
                     hintStyle: const TextStyle(color: AppColors.textMuted, fontSize: 14),
                     contentPadding: const EdgeInsets.symmetric(vertical: 14),
                   ),
@@ -239,7 +243,7 @@ class _FeedScreenState extends State<FeedScreen> {
                     label: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        if (cat != "All") Icon(AppCategories.getIcon(cat), size: 15, color: isSelected ? Colors.white : AppColors.textSecondary),
+                        if (cat != "All") Icon(AppCategories.getIcon(cat), size: 15, color: isSelected ? Colors.white : AppCategories.getColor(cat)),
                         if (cat != "All") const SizedBox(width: 6),
                         Text(cat),
                       ],
@@ -276,21 +280,23 @@ class _FeedScreenState extends State<FeedScreen> {
                     padding: const EdgeInsets.only(right: 8),
                     child: InkWell(
                       onTap: () => setState(() => selectedStatus = st),
-                      borderRadius: BorderRadius.circular(12),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      borderRadius: BorderRadius.circular(14),
+                      child: AnimatedContainer(
+                        duration: const Duration(milliseconds: 180),
+                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
                         decoration: BoxDecoration(
-                          color: isSelected ? AppColors.textPrimary : Colors.transparent,
-                          borderRadius: BorderRadius.circular(12),
+                          color: isSelected ? AppColors.textPrimary : Colors.white,
+                          borderRadius: BorderRadius.circular(14),
+                          boxShadow: isSelected ? AppColors.softShadow : [],
                           border: Border.all(
-                            color: isSelected ? AppColors.textPrimary : Colors.grey.shade300,
+                            color: isSelected ? AppColors.textPrimary : Colors.grey.shade200,
                           ),
                         ),
                         child: Text(
                           st,
                           style: TextStyle(
                             fontSize: 12,
-                            fontWeight: FontWeight.w600,
+                            fontWeight: FontWeight.bold,
                             color: isSelected ? Colors.white : AppColors.textSecondary,
                           ),
                         ),
@@ -340,17 +346,17 @@ class _FeedScreenState extends State<FeedScreen> {
 
                 if (issues.isEmpty) {
                   return Container(
-                    margin: const EdgeInsets.all(30),
-                    padding: const EdgeInsets.all(30),
+                    margin: const EdgeInsets.all(24),
+                    padding: const EdgeInsets.all(32),
                     decoration: BoxDecoration(
                       color: Colors.white,
-                      borderRadius: BorderRadius.circular(22),
+                      borderRadius: BorderRadius.circular(24),
                       boxShadow: AppColors.softShadow,
                     ),
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Icon(Icons.check_circle_outline_rounded, size: 60, color: Colors.grey.shade400),
+                        Icon(Icons.check_circle_outline_rounded, size: 56, color: AppColors.success.withValues(alpha: 0.8)),
                         const SizedBox(height: 12),
                         const Text(
                           "No Issues Matching Filter",
@@ -392,14 +398,14 @@ class _FeedScreenState extends State<FeedScreen> {
         Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon, color: Colors.white70, size: 14),
+            Icon(icon, color: Colors.white70, size: 15),
             const SizedBox(width: 4),
             Text(
               value,
               style: const TextStyle(
                 color: Colors.white,
                 fontWeight: FontWeight.bold,
-                fontSize: 16,
+                fontSize: 17,
               ),
             ),
           ],
@@ -410,6 +416,7 @@ class _FeedScreenState extends State<FeedScreen> {
           style: const TextStyle(
             color: Colors.white70,
             fontSize: 11,
+            fontWeight: FontWeight.w500,
           ),
         ),
       ],

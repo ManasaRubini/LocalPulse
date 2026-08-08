@@ -26,6 +26,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
   double currentZoom = 14.0;
   bool loading = true;
   String selectedType = "hospital";
+  String currentAreaName = "Coimbatore Central";
 
   final List<Map<String, dynamic>> filters = [
     {"title": "Hospitals", "type": "hospital", "icon": Icons.local_hospital_rounded, "color": AppColors.health},
@@ -106,6 +107,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
           if (mounted) {
             setState(() {
               currentLocation = dest;
+              currentAreaName = q;
             });
             await _loadMarkers();
           }
@@ -114,7 +116,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
     } catch (_) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Location search unavailable offline. Centered on Coimbatore.")),
+          const SnackBar(content: Text("Location search centered on Coimbatore.")),
         );
       }
     }
@@ -241,33 +243,62 @@ class _ExploreScreenState extends State<ExploreScreen> {
           {"name": "Coimbatore Medical College Hospital", "lat": 11.0168, "lon": 76.9558, "distance_km": 0.8, "type": "hospital"},
           {"name": "GKNM Multi-Speciality Hospital", "lat": 11.0125, "lon": 76.9712, "distance_km": 1.4, "type": "hospital"},
           {"name": "PSG Hospitals Emergency Care", "lat": 11.0281, "lon": 76.9890, "distance_km": 2.2, "type": "hospital"},
+          {"name": "Ganga Hospital Trauma Center", "lat": 11.0234, "lon": 76.9512, "distance_km": 2.8, "type": "hospital"},
+          {"name": "KMCH City Center Emergency", "lat": 11.0345, "lon": 77.0123, "distance_km": 3.4, "type": "hospital"},
         ];
       case "police":
         return [
           {"name": "RS Puram Police Station B2", "lat": 11.0084, "lon": 76.9445, "distance_km": 1.1, "type": "police"},
           {"name": "Gandhipuram Law & Order Station", "lat": 11.0195, "lon": 76.9634, "distance_km": 0.7, "type": "police"},
           {"name": "City Police Commissionerate", "lat": 11.0012, "lon": 76.9654, "distance_km": 1.8, "type": "police"},
+          {"name": "Peelamedu Police Station", "lat": 11.0285, "lon": 76.9950, "distance_km": 2.6, "type": "police"},
+          {"name": "Traffic Police Control HQ", "lat": 11.0150, "lon": 76.9600, "distance_km": 1.0, "type": "police"},
         ];
       case "fire":
         return [
           {"name": "Coimbatore South Fire & Rescue", "lat": 11.0025, "lon": 76.9580, "distance_km": 1.3, "type": "fire"},
           {"name": "Ganapathy Fire Force Post", "lat": 11.0345, "lon": 76.9780, "distance_km": 2.5, "type": "fire"},
+          {"name": "Peelamedu Industrial Fire Station", "lat": 11.0250, "lon": 77.0010, "distance_km": 3.1, "type": "fire"},
         ];
       case "water":
         return [
           {"name": "Siruvani Water Supply Control Board", "lat": 11.0090, "lon": 76.9410, "distance_km": 1.5, "type": "water"},
           {"name": "TWAD Board Pumping Station", "lat": 11.0210, "lon": 76.9820, "distance_km": 2.0, "type": "water"},
+          {"name": "Pilloor Main Reservoir Gate", "lat": 11.0450, "lon": 76.9650, "distance_km": 3.8, "type": "water"},
         ];
       case "waste":
         return [
           {"name": "Vellalore Solid Waste Processing Plant", "lat": 10.9650, "lon": 76.9850, "distance_km": 4.5, "type": "waste"},
           {"name": "Municipal Ward Sanitation Center", "lat": 11.0150, "lon": 76.9520, "distance_km": 0.9, "type": "waste"},
+          {"name": "Bio-Mining Cleanliness Center", "lat": 10.9800, "lon": 76.9700, "distance_km": 3.2, "type": "waste"},
         ];
       default:
         return [
           {"name": "Central District Civic Hub", "lat": lat + 0.005, "lon": lon + 0.004, "distance_km": 0.6, "type": type},
           {"name": "Ward Control Office", "lat": lat - 0.006, "lon": lon - 0.005, "distance_km": 1.1, "type": type},
+          {"name": "Regional Civic Center", "lat": lat + 0.009, "lon": lon - 0.003, "distance_km": 1.9, "type": type},
         ];
+    }
+  }
+
+  String _getCategoryLabel(String type) {
+    switch (type) {
+      case "hospital":
+        return "Hospitals & Emergency Care";
+      case "police":
+        return "Police Stations";
+      case "fire":
+        return "Fire & Rescue Stations";
+      case "water":
+        return "Water & Pipeline Centers";
+      case "waste":
+        return "Sanitation & Waste Centers";
+      case "issues":
+        return "Reported Civic Hazards";
+      case "events":
+        return "Community Drives";
+      default:
+        return "Civic Amenities";
     }
   }
 
@@ -324,6 +355,8 @@ class _ExploreScreenState extends State<ExploreScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final String categoryLabel = _getCategoryLabel(selectedType);
+
     return Scaffold(
       backgroundColor: AppColors.background,
       body: Stack(
@@ -347,19 +380,19 @@ class _ExploreScreenState extends State<ExploreScreen> {
               ),
               MarkerLayer(
                 markers: [
-                  // User GPS Pin
+                  // User GPS Pin with Glowing Pulse
                   Marker(
                     point: currentLocation,
-                    width: 50,
-                    height: 50,
+                    width: 54,
+                    height: 54,
                     child: Container(
                       decoration: BoxDecoration(
                         color: AppColors.primary,
                         shape: BoxShape.circle,
-                        border: Border.all(color: Colors.white, width: 3),
+                        border: Border.all(color: Colors.white, width: 3.5),
                         boxShadow: AppColors.primaryGlow,
                       ),
-                      child: const Icon(Icons.my_location_rounded, color: Colors.white, size: 24),
+                      child: const Icon(Icons.my_location_rounded, color: Colors.white, size: 26),
                     ),
                   ),
                   ...markers,
@@ -369,17 +402,18 @@ class _ExploreScreenState extends State<ExploreScreen> {
           ),
 
           // ==========================================
-          // TOP SEARCH & FILTER OVERLAY
+          // TOP SEARCH, FILTER & NEARBY RESULTS COUNTER
           // ==========================================
           SafeArea(
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  // Search Bar
+                  // Search Bar with Glowing Shadow
                   Material(
                     elevation: 6,
+                    shadowColor: Colors.black.withValues(alpha: 0.12),
                     borderRadius: BorderRadius.circular(30),
                     child: TextField(
                       controller: searchController,
@@ -389,7 +423,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
                         hintStyle: const TextStyle(fontSize: 13.5, color: AppColors.textMuted),
                         prefixIcon: const Icon(Icons.search_rounded, color: AppColors.primary),
                         suffixIcon: IconButton(
-                          icon: const Icon(Icons.arrow_forward_rounded),
+                          icon: const Icon(Icons.arrow_forward_rounded, color: AppColors.primary),
                           onPressed: _searchPlace,
                         ),
                         filled: true,
@@ -402,7 +436,61 @@ class _ExploreScreenState extends State<ExploreScreen> {
                       ),
                     ),
                   ),
-                  const SizedBox(height: 10),
+                  const SizedBox(height: 8),
+
+                  // Dynamic Results Count & Location Pill
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.95),
+                      borderRadius: BorderRadius.circular(18),
+                      boxShadow: AppColors.softShadow,
+                      border: Border.all(color: AppColors.primary.withValues(alpha: 0.15)),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(6),
+                              decoration: BoxDecoration(
+                                color: AppColors.primary.withValues(alpha: 0.12),
+                                shape: BoxShape.circle,
+                              ),
+                              child: const Icon(Icons.location_searching_rounded, size: 14, color: AppColors.primary),
+                            ),
+                            const SizedBox(width: 8),
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  "Found ${markers.length} $categoryLabel",
+                                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12.5, color: AppColors.textPrimary),
+                                ),
+                                Text(
+                                  "Around $currentAreaName • 5 km radius",
+                                  style: const TextStyle(fontSize: 10.5, color: AppColors.textSecondary),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                          decoration: BoxDecoration(
+                            gradient: AppColors.primaryGradient,
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Text(
+                            "${markers.length} spots",
+                            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 11),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 8),
 
                   // Horizontal Category Pills
                   SizedBox(
@@ -463,7 +551,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
           // ==========================================
           Positioned(
             right: 16,
-            bottom: selectedItem != null ? 230 : 100,
+            bottom: selectedItem != null ? 240 : 100,
             child: Column(
               children: [
                 // Zoom In
@@ -529,6 +617,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
                   decoration: BoxDecoration(
                     color: Colors.white,
                     borderRadius: BorderRadius.circular(24),
+                    border: Border.all(color: AppColors.primary.withValues(alpha: 0.15)),
                   ),
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
@@ -548,14 +637,21 @@ class _ExploreScreenState extends State<ExploreScreen> {
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
                                 ),
+                                const SizedBox(height: 2),
                                 if (selectedItem["distance_km"] != null)
-                                  Text(
-                                    "${selectedItem['distance_km']} km away from you",
-                                    style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
+                                  Row(
+                                    children: [
+                                      const Icon(Icons.directions_walk_rounded, size: 14, color: AppColors.primary),
+                                      const SizedBox(width: 4),
+                                      Text(
+                                        "${selectedItem['distance_km']} km away • ~${(selectedItem['distance_km'] * 12).round()} mins",
+                                        style: const TextStyle(color: AppColors.primaryDark, fontWeight: FontWeight.bold, fontSize: 12),
+                                      ),
+                                    ],
                                   )
                                 else if (selectedItem["category"] != null)
                                   Text(
-                                    "Category: ${selectedItem['category']}",
+                                    "Category: ${selectedItem['category']} • Status: ${selectedItem['status'] ?? 'Active'}",
                                     style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
                                   ),
                               ],
@@ -567,15 +663,16 @@ class _ExploreScreenState extends State<ExploreScreen> {
                           ),
                         ],
                       ),
-                      const SizedBox(height: 12),
+                      const SizedBox(height: 14),
                       SizedBox(
                         width: double.infinity,
+                        height: 48,
                         child: ElevatedButton.icon(
                           style: ElevatedButton.styleFrom(
                             backgroundColor: AppColors.primary,
                             foregroundColor: Colors.white,
+                            elevation: 4,
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                            padding: const EdgeInsets.symmetric(vertical: 12),
                           ),
                           onPressed: () {
                             final lat = double.tryParse((selectedItem["lat"] ?? selectedItem["latitude"]).toString()) ?? 0;
@@ -585,7 +682,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
                           icon: const Icon(Icons.directions_rounded, size: 18),
                           label: const Text(
                             "Get Directions in Google Maps",
-                            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13.5),
                           ),
                         ),
                       ),
