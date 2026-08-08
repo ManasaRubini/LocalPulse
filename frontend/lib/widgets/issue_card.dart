@@ -52,6 +52,99 @@ class _IssueCardState extends State<IssueCard> with SingleTickerProviderStateMix
     });
   }
 
+  void _showStatusUpdateDialog(BuildContext context) {
+    String selectedStatus = currentStatus;
+    final TextEditingController noteCtrl = TextEditingController(text: widget.issue.resolutionNote);
+
+    showDialog(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) {
+          return AlertDialog(
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(22)),
+            title: const Row(
+              children: [
+                Icon(Icons.tune_rounded, color: AppColors.primary),
+                SizedBox(width: 10),
+                Text("Update Issue Status", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+              ],
+            ),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text("Select Lifecycle State:", style: TextStyle(fontSize: 13, color: AppColors.textSecondary)),
+                const SizedBox(height: 10),
+                Wrap(
+                  spacing: 8,
+                  children: ["Open", "In Progress", "Resolved"].map((st) {
+                    final isSel = st == selectedStatus;
+                    return ChoiceChip(
+                      selected: isSel,
+                      label: Text(st),
+                      selectedColor: AppColors.primary,
+                      labelStyle: TextStyle(
+                        color: isSel ? Colors.white : AppColors.textPrimary,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 12,
+                      ),
+                      onSelected: (_) => setDialogState(() => selectedStatus = st),
+                    );
+                  }).toList(),
+                ),
+                const SizedBox(height: 14),
+                const Text("Resolution Remarks:", style: TextStyle(fontSize: 13, color: AppColors.textSecondary)),
+                const SizedBox(height: 6),
+                TextField(
+                  controller: noteCtrl,
+                  maxLines: 2,
+                  decoration: InputDecoration(
+                    hintText: "e.g. TWAD Board replaced pipeline valve.",
+                    hintStyle: const TextStyle(fontSize: 13, color: AppColors.textMuted),
+                    filled: true,
+                    fillColor: AppColors.background,
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide.none),
+                  ),
+                ),
+              ],
+            ),
+            actions: [
+              TextButton(onPressed: () => Navigator.pop(context), child: const Text("Cancel")),
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primary,
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+                onPressed: () async {
+                  await ApiService.updateIssueStatus(
+                    widget.issue.id,
+                    selectedStatus,
+                    resolutionNote: noteCtrl.text.trim(),
+                  );
+                  if (context.mounted) {
+                    Navigator.pop(context);
+                    setState(() {
+                      currentStatus = selectedStatus;
+                    });
+                    widget.onStatusChanged?.call();
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text("Issue status updated to $selectedStatus!"),
+                        backgroundColor: AppColors.success,
+                      ),
+                    );
+                  }
+                },
+                child: const Text("Save"),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+
   void _showImageZoom(BuildContext context, String imageUrl) {
     if (imageUrl.isEmpty) return;
     showDialog(
@@ -421,7 +514,7 @@ class _IssueCardState extends State<IssueCard> with SingleTickerProviderStateMix
               ),
             ),
 
-          // Bottom Action Bar: Category tag, Status indicator, Upvote button & Comments
+          // Bottom Action Bar: Category tag, Status indicator (tap to change), Upvote button & Comments
           Padding(
             padding: const EdgeInsets.fromLTRB(14, 8, 14, 12),
             child: Row(
@@ -440,16 +533,27 @@ class _IssueCardState extends State<IssueCard> with SingleTickerProviderStateMix
                 ),
                 const SizedBox(width: 8),
 
-                // Status Tag
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: issue.statusColor.withValues(alpha: 0.12),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Text(
-                    issue.status,
-                    style: TextStyle(color: issue.statusColor, fontWeight: FontWeight.bold, fontSize: 12),
+                // Interactive Status Pill (Tap to update state)
+                InkWell(
+                  onTap: () => _showStatusUpdateDialog(context),
+                  borderRadius: BorderRadius.circular(12),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: issue.statusColor.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          currentStatus,
+                          style: TextStyle(color: issue.statusColor, fontWeight: FontWeight.bold, fontSize: 12),
+                        ),
+                        const SizedBox(width: 3),
+                        Icon(Icons.edit_outlined, size: 12, color: issue.statusColor),
+                      ],
+                    ),
                   ),
                 ),
 
