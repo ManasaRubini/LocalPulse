@@ -17,8 +17,8 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   int currentIndex = 0;
   String? feedCategoryFilter;
-
   String? exploreSubType;
+  late List<Widget> pages;
 
   @override
   void initState() {
