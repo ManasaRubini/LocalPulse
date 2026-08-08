@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:speech_to_text/speech_to_text.dart' as stt;
 import '../services/voice_service.dart';
 import '../utils/app_colors.dart';
 import 'emergency_sos_sheet.dart';
@@ -53,25 +54,27 @@ class _VoiceAssistantModalState extends State<VoiceAssistantModal> with SingleTi
   late AnimationController _pulseController;
   final TextEditingController _queryController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
+  final stt.SpeechToText _speech = stt.SpeechToText();
 
   bool isListening = false;
   bool isThinking = false;
+  bool speechAvailable = false;
 
   final List<ChatMessage> _messages = [
     ChatMessage(
-      text: "Vanakkam! I'm PulseAI, your friendly civic companion. 🤖✨\n\nI can help you report road potholes, check water leaks, locate nearby hospitals, or find community drives. How's your neighborhood today?",
+      text: "Vanakkam! I'm PulseAI, your friendly civic companion in Coimbatore. 🤖✨\n\nAsk me anything about reported issues, road repairs, hospitals, or chat freely in Tanglish & English!",
       isUser: false,
       payload: "welcome",
     ),
   ];
 
   List<String> dynamicSuggestions = [
-    "💧 Show water leaks",
-    "🏥 Nearest hospital",
-    "🚨 Emergency SOS",
-    "🚧 Report road damage",
-    "🌳 Tree plantation events",
-    "🏆 How does karma work?"
+    "📊 What issues are in the app?",
+    "💧 Thanni leak aagudhu",
+    "🏥 Hospital la ethavathu prachanaya?",
+    "🚧 Road la pallam irukku",
+    "🏆 Who has the highest karma?",
+    "🚨 Emergency SOS"
   ];
 
   @override
@@ -81,10 +84,32 @@ class _VoiceAssistantModalState extends State<VoiceAssistantModal> with SingleTi
       vsync: this,
       duration: const Duration(milliseconds: 1200),
     )..repeat(reverse: true);
+    _initSpeech();
+  }
+
+  Future<void> _initSpeech() async {
+    try {
+      speechAvailable = await _speech.initialize(
+        onError: (err) => setState(() => isListening = false),
+        onStatus: (status) {
+          if (status == "done" || status == "notListening") {
+            if (mounted && isListening) {
+              setState(() => isListening = false);
+              if (_queryController.text.trim().isNotEmpty) {
+                _handleQuery(_queryController.text);
+              }
+            }
+          }
+        },
+      );
+    } catch (_) {
+      speechAvailable = false;
+    }
   }
 
   @override
   void dispose() {
+    _speech.stop();
     _pulseController.dispose();
     _queryController.dispose();
     _scrollController.dispose();
@@ -103,26 +128,40 @@ class _VoiceAssistantModalState extends State<VoiceAssistantModal> with SingleTi
     });
   }
 
-  void _toggleListening() {
+  Future<void> _toggleListening() async {
     if (isListening) {
+      await _speech.stop();
       setState(() => isListening = false);
       if (_queryController.text.trim().isNotEmpty) {
         _handleQuery(_queryController.text);
       }
     } else {
-      setState(() {
-        isListening = true;
-      });
+      if (!speechAvailable) {
+        speechAvailable = await _speech.initialize();
+      }
 
-      // Interactive auto-listen simulate
-      Future.delayed(const Duration(milliseconds: 2200), () {
-        if (!mounted || !isListening) return;
-        setState(() => isListening = false);
-        if (_queryController.text.trim().isEmpty) {
-          _queryController.text = "Show water leaks near RS Puram";
-        }
-        _handleQuery(_queryController.text);
-      });
+      if (speechAvailable) {
+        setState(() {
+          isListening = true;
+          _queryController.clear();
+        });
+
+        _speech.listen(
+          onResult: (result) {
+            setState(() {
+              _queryController.text = result.recognizedWords;
+            });
+          },
+        );
+      } else {
+        // Fallback for emulator or desktop: provide focus to text input
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("Microphone active! Type or speak your question freely."),
+            duration: Duration(seconds: 2),
+          ),
+        );
+      }
     }
   }
 
@@ -130,6 +169,11 @@ class _VoiceAssistantModalState extends State<VoiceAssistantModal> with SingleTi
     final clean = text.trim();
     if (clean.isEmpty) return;
     _queryController.clear();
+
+    if (isListening) {
+      _speech.stop();
+      isListening = false;
+    }
 
     final List<Map<String, String>> historyPayload = _messages.map((m) {
       return {
@@ -141,7 +185,6 @@ class _VoiceAssistantModalState extends State<VoiceAssistantModal> with SingleTi
     setState(() {
       _messages.add(ChatMessage(text: clean, isUser: true));
       isThinking = true;
-      isListening = false;
     });
     _scrollToBottom();
 
@@ -166,14 +209,6 @@ class _VoiceAssistantModalState extends State<VoiceAssistantModal> with SingleTi
         }
       });
       _scrollToBottom();
-
-      // Trigger automatic navigation if query is a direct intent
-      if (res.actionType != null) {
-        Future.delayed(const Duration(milliseconds: 1400), () {
-          if (!mounted) return;
-          _executeAction(res.actionType!, res.payload);
-        });
-      }
     } catch (_) {
       if (!mounted) return;
       setState(() {
@@ -216,7 +251,7 @@ class _VoiceAssistantModalState extends State<VoiceAssistantModal> with SingleTi
         bottom: MediaQuery.of(context).viewInsets.bottom + 20,
       ),
       constraints: BoxConstraints(
-        maxHeight: MediaQuery.of(context).size.height * 0.85,
+        maxHeight: MediaQuery.of(context).size.height * 0.88,
       ),
       child: Column(
         children: [
@@ -269,11 +304,11 @@ class _VoiceAssistantModalState extends State<VoiceAssistantModal> with SingleTi
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const Text(
-                    "PulseAI Civic Buddy",
+                    "PulseAI Civic Companion",
                     style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: AppColors.textPrimary),
                   ),
                   Text(
-                    isListening ? "Listening to your voice..." : "Friendly civic assistant & neighborhood guide",
+                    isListening ? "Listening to your voice..." : "Live chat history & conversational civic AI",
                     style: TextStyle(
                       fontSize: 12,
                       color: isListening ? AppColors.alert : AppColors.textSecondary,
@@ -293,7 +328,7 @@ class _VoiceAssistantModalState extends State<VoiceAssistantModal> with SingleTi
           const Divider(height: 1),
           const SizedBox(height: 10),
 
-          // Chat Messages History
+          // Chat Messages History (Retained throughout the session)
           Expanded(
             child: ListView.builder(
               controller: _scrollController,
@@ -342,7 +377,7 @@ class _VoiceAssistantModalState extends State<VoiceAssistantModal> with SingleTi
                   side: BorderSide.none,
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
                   onPressed: () {
-                    final cleanQuery = prompt.replaceAll(RegExp(r'[^\w\s]'), '').trim();
+                    final cleanQuery = prompt.replaceAll(RegExp(r'[^\w\s\?]'), '').trim();
                     _handleQuery(cleanQuery);
                   },
                 );
@@ -359,11 +394,18 @@ class _VoiceAssistantModalState extends State<VoiceAssistantModal> with SingleTi
                   controller: _queryController,
                   onSubmitted: _handleQuery,
                   decoration: InputDecoration(
-                    hintText: "Ask anything (e.g. 'Show water leaks', 'Nearest hospital')...",
-                    hintStyle: const TextStyle(color: AppColors.textMuted, fontSize: 13),
+                    hintText: isListening ? "Listening... speak now" : "Ask anything (e.g. 'hospital la ethavathu prachanaya')...",
+                    hintStyle: TextStyle(
+                      color: isListening ? AppColors.alert : AppColors.textMuted,
+                      fontSize: 13,
+                    ),
                     filled: true,
-                    fillColor: AppColors.background,
-                    prefixIcon: const Icon(Icons.chat_bubble_outline_rounded, color: AppColors.primary, size: 20),
+                    fillColor: isListening ? AppColors.alertLight.withValues(alpha: 0.3) : AppColors.background,
+                    prefixIcon: Icon(
+                      isListening ? Icons.mic_rounded : Icons.chat_bubble_outline_rounded,
+                      color: isListening ? AppColors.alert : AppColors.primary,
+                      size: 20,
+                    ),
                     contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(25),
@@ -397,7 +439,7 @@ class _VoiceAssistantModalState extends State<VoiceAssistantModal> with SingleTi
         child: Container(
           margin: const EdgeInsets.symmetric(vertical: 6),
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-          constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.75),
+          constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.78),
           decoration: BoxDecoration(
             gradient: AppColors.primaryGradient,
             borderRadius: const BorderRadius.only(
@@ -421,7 +463,7 @@ class _VoiceAssistantModalState extends State<VoiceAssistantModal> with SingleTi
       child: Container(
         margin: const EdgeInsets.symmetric(vertical: 6),
         padding: const EdgeInsets.all(14),
-        constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.85),
+        constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.88),
         decoration: BoxDecoration(
           color: AppColors.background,
           borderRadius: const BorderRadius.only(
@@ -440,20 +482,20 @@ class _VoiceAssistantModalState extends State<VoiceAssistantModal> with SingleTi
               style: const TextStyle(color: AppColors.textPrimary, fontSize: 13.8, height: 1.42),
             ),
             if (msg.actionType != null) ...[
-              const SizedBox(height: 10),
+              const SizedBox(height: 12),
               ElevatedButton.icon(
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.primary,
                   foregroundColor: Colors.white,
-                  elevation: 0,
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  elevation: 2,
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                 ),
                 onPressed: () => _executeAction(msg.actionType!, msg.payload),
-                icon: const Icon(Icons.touch_app_rounded, size: 16),
+                icon: const Icon(Icons.open_in_new_rounded, size: 16),
                 label: Text(
                   _getActionLabel(msg.actionType!),
-                  style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+                  style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.bold),
                 ),
               ),
             ],
@@ -466,15 +508,15 @@ class _VoiceAssistantModalState extends State<VoiceAssistantModal> with SingleTi
   String _getActionLabel(String actionType) {
     switch (actionType) {
       case "open_emergency":
-        return "Open Emergency SOS";
+        return "Open Emergency SOS Speed-Dial";
       case "open_explore":
-        return "View on Explore Map";
+        return "View Locations on Explore Map";
       case "filter_category":
         return "Filter Feed Issues";
       case "open_events":
-        return "Go to Community Drives";
+        return "Open Community Drives";
       case "open_report":
-        return "Submit New Report";
+        return "Submit New Report Form";
       default:
         return "View Details";
     }

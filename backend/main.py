@@ -646,10 +646,29 @@ def ai_chat(payload: dict):
     # 3. LIVE DATABASE RAG (EXACT CIVIC KNOWLEDGE)
     # ---------------------------------------------------------
     asks_about_reports = any(w in q for w in ["what issue", "what report", "in the app", "show issues", "list issues", "reported", "current issues", "any issue", "all issue", "status of", "complaints"])
-    asks_about_water = any(w in q for w in ["water issue", "water leak", "thanni issue", "water report", "drinking water", "siruvani leak"])
-    asks_about_road = any(w in q for w in ["road issue", "pothole issue", "road report", "traffic issue", "pallam"])
+    asks_about_water = any(w in q for w in ["water issue", "water leak", "thanni issue", "water report", "drinking water", "siruvani leak", "thanni la", "thanni prechanai"])
+    asks_about_road = any(w in q for w in ["road issue", "pothole issue", "road report", "traffic issue", "pallam", "road la", "road prechanai"])
+    asks_about_health_issues = any(w in q for w in ["hospital la", "health la", "maruthuvamanai la", "hospital issue", "health issue", "hospital prechanai", "hospital la ethavathu"])
     asks_about_events = any(w in q for w in ["what event", "any event", "upcoming drive", "plantation drive", "blood camp", "in the calendar"])
     asks_about_leaderboard = any(w in q for w in ["who has the highest", "top citizen", "leaderboard", "highest karma", "top user"])
+
+    if asks_about_health_issues:
+        health_issues = [i for i in active_issues if i["category"].lower() in ["health", "hospital"]]
+        if health_issues:
+            desc = "\n".join([f"• {i['title']} at {i['location']} (Status: {i['status']}, Priority: {i['priority']})" for i in health_issues])
+            return {
+                "reply": f"Hospital & Health category la currently {len(health_issues)} issue reported:\n\n{desc}\n\nCoimbatore Medical College & GKNM hospitals la emergency services normal ah operate aaguthu thalaiva!",
+                "action": "open_explore",
+                "payload": "hospital",
+                "suggestions": ["🏥 View hospital map", "📝 Report a health hazard", "🚨 Emergency SOS"]
+            }
+        else:
+            return {
+                "reply": "Hospital & Health facilities la ippo endha prechanayum illa thalaiva! 🏥 Coimbatore Medical College, GKNM, and PSG hospitals are running smoothly 24/7. Need directions to the nearest center?",
+                "action": "open_explore",
+                "payload": "hospital",
+                "suggestions": ["🏥 View on Explore map", "🚨 Emergency SOS", "📝 Report an issue"]
+            }
 
     if asks_about_reports:
         if active_issues:
