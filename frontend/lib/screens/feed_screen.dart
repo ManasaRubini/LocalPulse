@@ -33,15 +33,21 @@ class _FeedScreenState extends State<FeedScreen> {
     if (widget.initialCategoryFilter != null) {
       selectedCategory = widget.initialCategoryFilter!;
     }
-    _loadUser();
-    _fetchData();
+    issuesFuture = ApiService.getIssues();
+    statsFuture = ApiService.getStatsOverview();
+    _loadUserAndFetch();
   }
 
-  Future<void> _loadUser() async {
+  Future<void> _loadUserAndFetch() async {
     final prefs = await SharedPreferences.getInstance();
-    setState(() {
-      currentUsername = prefs.getString("username") ?? "Citizen";
-    });
+    final user = prefs.getString("username") ?? "Citizen";
+    if (mounted) {
+      setState(() {
+        currentUsername = user;
+        issuesFuture = ApiService.getIssues(user: user);
+        statsFuture = ApiService.getStatsOverview();
+      });
+    }
   }
 
   void _fetchData() {

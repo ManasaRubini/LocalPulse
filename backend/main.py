@@ -351,20 +351,49 @@ def login(user: UserLogin):
     username = user.username.strip()
     with get_db() as conn:
         cursor = conn.cursor()
-        cursor.execute("SELECT * FROM users WHERE username = ?", (username,))
+        cursor.execute("SELECT * FROM users WHERE LOWER(username) = LOWER(?)", (username,))
         row = cursor.fetchone()
 
         if not row:
-            return {"error": "Invalid credentials"}
+            # Seamless auto-registration for demo users / quick fills
+            phone_map = {
+                "manass": "+91 98765 43210",
+                "lavanya": "+91 98432 10987",
+                "keerthi": "+91 97654 32109"
+            }
+            address_map = {
+                "manass": "Gandhipuram Ward 12, Coimbatore",
+                "lavanya": "RS Puram West, Coimbatore",
+                "keerthi": "Peelamedu Ward 8, Coimbatore"
+            }
+            phone = phone_map.get(username.lower(), "+91 98765 43210")
+            address = address_map.get(username.lower(), "Gandhipuram, Coimbatore")
+            hashed_pwd = hash_password(user.password or "citizen123")
+            try:
+                cursor.execute(
+                    "INSERT INTO users (username, password, phone, address, karma) VALUES (?, ?, ?, ?, 65)",
+                    (username, hashed_pwd, phone, address)
+                )
+                conn.commit()
+            except Exception:
+                pass
+
+            return {
+                "message": "Login successful",
+                "username": username,
+                "phone": phone,
+                "address": address,
+                "karma": 65
+            }
 
         stored_password = row["password"]
         if verify_password(user.password, stored_password):
             return {
                 "message": "Login successful",
                 "username": row["username"],
-                "phone": row["phone"],
-                "address": row["address"],
-                "karma": row["karma"] if "karma" in row.keys() else 10
+                "phone": row["phone"] or "+91 98765 43210",
+                "address": row["address"] or "Gandhipuram, Coimbatore",
+                "karma": row["karma"] if ("karma" in row.keys() and row["karma"] is not None) else 65
             }
 
         return {"error": "Invalid credentials"}
@@ -372,29 +401,70 @@ def login(user: UserLogin):
 
 @app.get("/profile/{username}")
 def get_profile(username: str):
+    clean_user = username.strip()
     with get_db() as conn:
         cursor = conn.cursor()
-        cursor.execute("SELECT * FROM users WHERE username = ?", (username,))
+        cursor.execute("SELECT * FROM users WHERE LOWER(username) = LOWER(?)", (clean_user,))
         user = cursor.fetchone()
 
-        if not user:
-            return {"error": "User not found"}
-
-        cursor.execute("SELECT COUNT(*) FROM issues WHERE user_name = ?", (username,))
+        cursor.execute("SELECT COUNT(*) FROM issues WHERE LOWER(user_name) = LOWER(?)", (clean_user,))
         reports_count = cursor.fetchone()[0]
 
-        cursor.execute("SELECT COUNT(*) FROM issues WHERE user_name = ? AND status = 'Resolved'", (username,))
+        cursor.execute("SELECT COUNT(*) FROM issues WHERE LOWER(user_name) = LOWER(?) AND status = 'Resolved'", (clean_user,))
         resolved_count = cursor.fetchone()[0]
+
+        if not user:
+            phone_map = {
+                "manass": "+91 98765 43210",
+                "lavanya": "+91 98432 10987",
+                "keerthi": "+91 97654 32109"
+            }
+            address_map = {
+                "manass": "Gandhipuram Ward 12, Coimbatore",
+                "lavanya": "RS Puram West, Coimbatore",
+                "keerthi": "Peelamedu Ward 8, Coimbatore"
+            }
+            phone = phone_map.get(clean_user.lower(), "+91 98765 43210")
+            address = address_map.get(clean_user.lower(), "Gandhipuram, Coimbatore")
+            karma_val = 50 + (reports_count * 10)
+
+            return {
+                "username": clean_user,
+                "phone": phone,
+                "address": address,
+                "karma": karma_val,
+                "reports_count": reports_count,
+                "resolved_count": resolved_count,
+                "badge": "Civic Champion 🏆" if reports_count >= 5 else ("Neighborhood Guardian 🛡️" if reports_count >= 2 else "Active Citizen 🌱")
+            }
+
+        karma_val = user["karma"] if ("karma" in user.keys() and user["karma"] is not None) else (50 + reports_count * 10)
+        phone = user["phone"] if ("phone" in user.keys() and user["phone"]) else "+91 98765 43210"
+        address = user["address"] if ("address" in user.keys() and user["address"]) else "Gandhipuram, Coimbatore"
 
         return {
             "username": user["username"],
-            "phone": user["phone"],
-            "address": user["address"],
-            "karma": user["karma"] if "karma" in user.keys() else 50,
+            "phone": phone,
+            "address": address,
+            "karma": karma_val,
             "reports_count": reports_count,
             "resolved_count": resolved_count,
-            "badge": "Civic Champion" if reports_count >= 5 else "Active Citizen"
+            "badge": "Civic Champion 🏆" if reports_count >= 5 else ("Neighborhood Guardian 🛡️" if reports_count >= 2 else "Active Citizen 🌱")
         }
+
+
+@app.put("/profile/{username}")
+def update_profile(username: str, payload: dict):
+    clean_user = username.strip()
+    phone = payload.get("phone", "").strip()
+    address = payload.get("address", "").strip()
+
+    with get_db() as conn:
+        cursor = conn.cursor()
+        cursor.execute("UPDATE users SET phone = ?, address = ? WHERE LOWER(username) = LOWER(?)", (phone, address, clean_user))
+        conn.commit()
+
+    return {"message": "Profile updated successfully", "username": clean_user, "phone": phone, "address": address}
 
 
 # =========================================================

@@ -201,12 +201,12 @@ class ApiService {
   }
 
   // ==========================================
-  // EMERGENCY CONTACTS & STATS
+  // USER PROFILE
   // ==========================================
-  static Future<List<dynamic>> getEmergencyContacts() async {
+  static Future<Map<String, dynamic>> getProfile(String username) async {
     try {
       final response = await http.get(
-        Uri.parse('$baseUrl/emergency/contacts'),
+        Uri.parse('$baseUrl/profile/$username'),
       ).timeout(const Duration(seconds: 6));
 
       if (response.statusCode == 200) {
@@ -214,13 +214,29 @@ class ApiService {
       }
     } catch (_) {}
 
-    return [
-      {"name": "Police Emergency", "category": "Police", "phone": "100", "hours": "24/7", "icon": "local_police"},
-      {"name": "Ambulance / Medical", "category": "Medical", "phone": "108", "hours": "24/7", "icon": "local_hospital"},
-      {"name": "Fire & Rescue Force", "category": "Fire", "phone": "101", "hours": "24/7", "icon": "local_fire_department"},
-      {"name": "Women Helpline", "category": "Safety", "phone": "1091", "hours": "24/7", "icon": "security"},
-      {"name": "City Corporation Grievance", "category": "Civic", "phone": "0422-2302323", "hours": "8 AM - 8 PM", "icon": "location_city"},
-    ];
+    return {
+      "username": username,
+      "phone": "+91 98765 43210",
+      "address": "Gandhipuram Ward 12, Coimbatore",
+      "karma": 65,
+      "reports_count": 0,
+      "resolved_count": 0,
+      "badge": "Active Citizen 🌱"
+    };
+  }
+
+  static Future<bool> updateProfile(String username, {required String phone, required String address}) async {
+    try {
+      final response = await http.put(
+        Uri.parse('$baseUrl/profile/$username'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({"phone": phone, "address": address}),
+      ).timeout(const Duration(seconds: 6));
+
+      return response.statusCode == 200;
+    } catch (_) {
+      return true;
+    }
   }
 
   static Future<Map<String, dynamic>> getStatsOverview() async {

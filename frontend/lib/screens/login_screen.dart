@@ -45,9 +45,15 @@ class _LoginScreenState extends State<LoginScreen> {
         ).timeout(const Duration(seconds: 8));
 
         final data = jsonDecode(response.body);
+        final prefs = await SharedPreferences.getInstance();
+
         if (response.statusCode == 200 && data["username"] != null) {
-          final prefs = await SharedPreferences.getInstance();
-          await prefs.setString("username", data["username"]);
+          await prefs.setString("username", data["username"] ?? username);
+          await prefs.setString("phone", data["phone"] ?? phoneController.text.trim());
+          await prefs.setString("address", data["address"] ?? addressController.text.trim());
+          if (data["karma"] != null) {
+            await prefs.setInt("karma", int.tryParse(data["karma"].toString()) ?? 65);
+          }
 
           if (!mounted) return;
           Navigator.pushReplacement(
@@ -55,9 +61,15 @@ class _LoginScreenState extends State<LoginScreen> {
             MaterialPageRoute(builder: (_) => const HomeScreen()),
           );
         } else {
-          // Demo fallback: If backend wake-up is slow, allow citizen entry
-          final prefs = await SharedPreferences.getInstance();
+          // Demo fallback: If backend wake-up is slow, populate rich default profile
+          final defaultPhones = {"manass": "+91 98765 43210", "lavanya": "+91 98432 10987", "keerthi": "+91 97654 32109"};
+          final defaultAddresses = {"manass": "Gandhipuram Ward 12, Coimbatore", "lavanya": "RS Puram West, Coimbatore", "keerthi": "Peelamedu Ward 8, Coimbatore"};
+
           await prefs.setString("username", username);
+          await prefs.setString("phone", defaultPhones[username.toLowerCase()] ?? "+91 98765 43210");
+          await prefs.setString("address", defaultAddresses[username.toLowerCase()] ?? "Gandhipuram, Coimbatore");
+          await prefs.setInt("karma", 65);
+
           if (!mounted) return;
           Navigator.pushReplacement(
             context,
