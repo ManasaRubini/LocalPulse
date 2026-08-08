@@ -126,10 +126,17 @@ class _VoiceAssistantModalState extends State<VoiceAssistantModal> with SingleTi
     }
   }
 
-  void _handleQuery(String text) {
+  void _handleQuery(String text) async {
     final clean = text.trim();
     if (clean.isEmpty) return;
     _queryController.clear();
+
+    final List<Map<String, String>> historyPayload = _messages.map((m) {
+      return {
+        "role": m.isUser ? "user" : "assistant",
+        "text": m.text,
+      };
+    }).toList();
 
     setState(() {
       _messages.add(ChatMessage(text: clean, isUser: true));
@@ -138,8 +145,12 @@ class _VoiceAssistantModalState extends State<VoiceAssistantModal> with SingleTi
     });
     _scrollToBottom();
 
-    Future.delayed(const Duration(milliseconds: 600), () {
-      final res = PulseAIService.processQuery(clean);
+    try {
+      final res = await PulseAIService.processQueryAsync(
+        clean,
+        history: historyPayload,
+      );
+
       if (!mounted) return;
 
       setState(() {
@@ -163,7 +174,17 @@ class _VoiceAssistantModalState extends State<VoiceAssistantModal> with SingleTi
           _executeAction(res.actionType!, res.payload);
         });
       }
-    });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        isThinking = false;
+        _messages.add(ChatMessage(
+          text: "Vanakkam! Unga query purinjikitten. Water leaks, hospital pins, road repairs, illana emergency help thevaiya thalaiva?",
+          isUser: false,
+        ));
+      });
+      _scrollToBottom();
+    }
   }
 
   void _executeAction(String actionType, String? payload) {

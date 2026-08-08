@@ -517,27 +517,231 @@ def get_emergency_contacts():
 # =========================================================
 # PULSE AI SMART SUMMARY & NATURAL LANGUAGE INSIGHTS
 # =========================================================
-@app.get("/ai/pulse-summary")
-def get_pulse_summary():
+# =========================================================
+# GENERATIVE AI & BILINGUAL TANGLISH CHAT ENGINE
+# =========================================================
+@app.post("/ai/chat")
+def ai_chat(payload: dict):
+    raw_query = payload.get("query", "").strip()
+    user_name = payload.get("user", "Citizen")
+    history = payload.get("history", [])
+
+    if not raw_query:
+        return {
+            "reply": "Vanakkam! 😊 Enna vishayam? Unga neighborhood la ethavathu help thevaiya?",
+            "action": None,
+            "payload": None,
+            "suggestions": ["💧 Thanni leak aagudhu", "🚧 Road la pallam", "🏥 Nearest hospital", "🏆 Karma epdi kedaikkum?"]
+        }
+
+    q = raw_query.lower()
+
+    # Gather live context from SQLite to inject real city statistics
+    active_issues_count = 0
+    top_category = "Water & Road"
     with get_db() as conn:
         cursor = conn.cursor()
-        cursor.execute("SELECT category, COUNT(*) as count FROM issues GROUP BY category ORDER BY count DESC")
-        cat_counts = cursor.fetchall()
+        cursor.execute("SELECT COUNT(*) FROM issues WHERE status = 'Open' OR status = 'In Progress'")
+        active_issues_count = cursor.fetchone()[0]
+        cursor.execute("SELECT category, COUNT(*) as c FROM issues GROUP BY category ORDER BY c DESC LIMIT 1")
+        top_row = cursor.fetchone()
+        if top_row:
+            top_category = top_row[0]
 
-        cursor.execute("SELECT COUNT(*) FROM issues WHERE priority = 'Critical' AND status = 'Open'")
-        critical_open = cursor.fetchone()[0]
+    # Check for Gemini / LLM API Key in environment if available
+    gemini_key = os.environ.get("GEMINI_API_KEY") or os.environ.get("GOOGLE_API_KEY")
+    if gemini_key:
+        try:
+            gemini_url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={gemini_key}"
+            system_instruction = f"""
+            You are PulseAI, a friendly, warm, empathetic, and culturally aware civic AI companion for Coimbatore citizens.
+            You speak natural English and Tanglish (Tamil written in English alphabet, e.g., 'Vanakkam thalaiva!', 'Sema mass ah irukken!').
+            Current city context: {active_issues_count} active ward reports in Coimbatore. Top reported category is {top_category}.
+            Answer naturally, conversationally, and warmly to any question (civic issues, chit-chat, how you are doing, city tips, weather, food, karma, and emergency help).
+            Keep responses concise (2-4 lines), vibrant, and friendly.
+            """
+            prompt = f"User ({user_name}): {raw_query}"
+            body = {
+                "contents": [{"parts": [{"text": f"{system_instruction}\n\n{prompt}"}]}],
+                "generationConfig": {"temperature": 0.7, "maxOutputTokens": 200}
+            }
+            res = requests.post(gemini_url, json=body, timeout=6)
+            if res.status_code == 200:
+                gen_text = res.json()["candidates"][0]["content"]["parts"][0]["text"].strip()
+                action = None
+                action_payload = None
+                if any(w in q for w in ["hospital", "doctor", "clinic", "maruthuvamanai"]):
+                    action = "open_explore"
+                    action_payload = "hospital"
+                elif any(w in q for w in ["police", "cop", "station", "kaaval"]):
+                    action = "open_explore"
+                    action_payload = "police"
+                elif any(w in q for w in ["emergency", "ambulance", "sos", "danger", "theepudichu"]):
+                    action = "open_emergency"
+                elif any(w in q for w in ["water", "thanni", "pipe", "leak", "drain", "siruvani"]):
+                    action = "filter_category"
+                    action_payload = "Water"
+                elif any(w in q for w in ["road", "pallam", "pothole", "traffic"]):
+                    action = "filter_category"
+                    action_payload = "Road"
+                elif any(w in q for w in ["event", "camp", "tree", "plantation", "blood", "maram"]):
+                    action = "open_events"
+                elif any(w in q for w in ["report", "complaint", "submit", "photo"]):
+                    action = "open_report"
 
-        top_category = cat_counts[0]["category"] if cat_counts else "General"
+                return {
+                    "reply": gen_text,
+                    "action": action,
+                    "payload": action_payload,
+                    "suggestions": ["💧 Thanni issues", "🏥 Hospital map", "📝 Submit report", "🌳 Community events"]
+                }
+        except Exception:
+            pass
 
+    # =========================================================
+    # HIGH-FIDELITY BILINGUAL TANGLISH & ENGLISH SYNTHESIS
+    # =========================================================
+
+    # 1. Informal Tanglish "How are you" & Friendly banter
+    if any(k in q for k in ["epd iruka", "epdi iruka", "epdi irukinga", "epd irukaa", "nalama", "enna panra", "enna vishesham", "macha", "thalaiva", "bro epdi", "saptacha"]):
+        replies = [
+            f"Sema mass ah irukken thalaiva! ⚡ Today Coimbatore la {active_issues_count} ward updates monitor pannitu irukken. Siruvani water leaks TWAD team fix pannitanga. Unga area la enna vishesham? Nalla irukiya?",
+            f"Vanakkam thalaiva! 😊 Romba super ah irukken. RS Puram, Gandhipuram, and Peelamedu ward resolution rate 88% reach aayiduchu! Unga street la ethavathu prechanai irukka?",
+            f"Naan nalla irukken {user_name}! 🌟 Full energy oda active citizens ku help pannitu irukken. Enna help thevaiya thalaiva? Road, thanni, illana hospital pathi kekanuma?"
+        ]
+        chosen = replies[len(raw_query) % len(replies)]
         return {
-            "headline": f"Top Civic Priority: {top_category} maintenance in central wards.",
-            "critical_alerts_count": critical_open,
-            "top_categories": [
-                {"category": r["category"], "count": r["count"]}
-                for r in cat_counts[:4]
-            ],
-            "ai_recommendation": "Authorities are actively resolving water pipeline leaks in RS Puram. Residents are encouraged to report any road potholes before monsoon."
+            "reply": chosen,
+            "action": None,
+            "payload": None,
+            "suggestions": ["💧 Thanni leak aagudhu", "🚧 Road la pallam irukku", "🏥 Hospital enga irukku?", "🏆 Karma epdi kedaikkum?"]
         }
+
+    # 2. English Greetings & How are you
+    if any(k in q for k in ["how are you", "how r u", "how do you do", "whats up", "how's it going", "sup bro", "helloo", "hiii", "hey"]):
+        return {
+            "reply": f"Doing fantastic, {user_name}! ⚡ Actively tracking {active_issues_count} community reports across Coimbatore wards. Resolution index is at a strong 88%! How's everything in your neighborhood today?",
+            "action": None,
+            "payload": None,
+            "suggestions": ["📢 Check live feed", "🌳 Upcoming events", "🚑 Emergency helplines", "🏆 How does karma work?"]
+        }
+
+    # 3. Tanglish / Tamil Gratitude & Praise
+    if any(k in q for k in ["nandri", "romba thanks", "super bro", "mass", "kalakkura", "sema", "mass bro", "thx", "thank you", "awesome"]):
+        return {
+            "reply": "Romba nandri thalaiva! 🌟 Active citizens like you make Coimbatore cleaner and safer every single day. I'm always right here whenever you need anything!",
+            "action": None,
+            "payload": None,
+            "suggestions": ["📅 Community events", "📍 Explore amenities", "📝 File new report"]
+        }
+
+    # 4. Tanglish / English Water Issues
+    if any(k in q for k in ["thanni", "thani", "kudineer", "water", "leak", "pipe", "drain", "saakadai", "siruvani", "twad", "valankulam"]):
+        return {
+            "reply": "Aiyayo, thanni waste aaga koodathu! 💧 Siruvani Water Supply Board & TWAD team are actively resolving pipeline leaks. Let's filter the feed to check existing updates or file a quick photo report!",
+            "action": "filter_category",
+            "payload": "Water",
+            "suggestions": ["📝 Report water leak", "🗺️ Water boards on map", "💧 Check other wards"]
+        }
+
+    # 5. Tanglish / English Road, Potholes & Infrastructure
+    if any(k in q for k in ["pallam", "road", "pothole", "thar road", "vandi", "traffic", "footpath", "street", "ootai", "damage"]):
+        return {
+            "reply": "Road la pallam iruntha safety risk! 🚧 I'm filtering the community feed for Road & Infrastructure hazards near Gandhipuram, Peelamedu, and RS Puram. Let's get it repaired fast!",
+            "action": "filter_category",
+            "payload": "Road",
+            "suggestions": ["📝 Report road damage", "🚗 View on Explore map", "📢 Check ward status"]
+        }
+
+    # 6. Tanglish / English Garbage & Sanitation
+    if any(k in q for k in ["kuppai", "naatham", "clean", "garbage", "waste", "dustbin", "trash", "sanitation", "vellalore"]):
+        return {
+            "reply": "Unga street eppavum clean ah irukanum! 🗑️ Showing sanitation reports and Vellalore solid waste processing updates across your ward. You can report uncollected garbage anytime!",
+            "action": "filter_category",
+            "payload": "Garbage",
+            "suggestions": ["📝 Report uncollected garbage", "🌳 Join clean-up drive", "🗺️ Sanitation centers"]
+        }
+
+    # 7. Tanglish / English Electricity & Streetlights
+    if any(k in q for k in ["current", "light", "street light", "kambam", "power", "blackout", "dark", "tneb", "transformer", "wire"]):
+        return {
+            "reply": "Night time la streetlight illana bayama irukkum! ⚡ Showing Electricity & Streetlight outages for immediate TNEB municipal maintenance.",
+            "action": "filter_category",
+            "payload": "Electricity",
+            "suggestions": ["📝 Report broken streetlight", "🚨 Emergency SOS", "⚡ TNEB contacts"]
+        }
+
+    # 8. Emergency & SOS
+    if any(k in q for k in ["police koopdu", "ambulance venum", "theepudichu", "emergency", "police", "ambulance", "fire", "sos", "danger", "accident", "help venum"]):
+        return {
+            "reply": "Bayapadatheenga, help ready ah irukku! 🚨 Direct 24/7 Emergency Helplines:\n• Police: 100\n• Medical Ambulance: 108\n• Fire Force: 101\n• Women Helpline: 1091\nLaunching the Emergency SOS speed-dial for you!",
+            "action": "open_emergency",
+            "payload": None,
+            "suggestions": ["🏥 Nearest hospital", "🚓 Nearest police station", "📞 Corporation grievance"]
+        }
+
+    # 9. Hospital & Medical Care
+    if any(k in q for k in ["hospital", "maruthuvamanai", "doctor", "clinic", "medical", "pharmacy", "health center"]):
+        return {
+            "reply": "🏥 Navigating to the Explore map! Pinpointing Coimbatore Medical College, GKNM Hospital, and PSG 24/7 Emergency Trauma Centers with walking and driving times.",
+            "action": "open_explore",
+            "payload": "hospital",
+            "suggestions": ["🗺️ Directions in Google Maps", "🚨 Call Ambulance (108)", "🏥 GKNM Hospital"]
+        }
+
+    # 10. Police Stations
+    if any(k in q for k in ["police station", "kaaval nilayam", "station enga", "cop", "patrol", "commissioner"]):
+        return {
+            "reply": "🚓 Showing local Police Stations including RS Puram B2, Gandhipuram Law & Order, and City Commissionerate on the Explore map.",
+            "action": "open_explore",
+            "payload": "police",
+            "suggestions": ["🗺️ Open in Google Maps", "🚨 Call Police (100)", "🚓 Traffic control HQ"]
+        }
+
+    # 11. Events, Tree Plantations & Blood Donation
+    if any(k in q for k in ["maram", "blood donation", "ratham", "event", "camp", "plantation", "drive", "meetup", "volunteer", "tree"]):
+        return {
+            "reply": "Romba nalla vishayam! 📅 Opening the Civic Events tab. You can RSVP for the Mega Blood Donation Camp at CMC or the 1000 Trees Plantation Drive at VOC Park!",
+            "action": "open_events",
+            "payload": None,
+            "suggestions": ["🌳 Host a new drive", "👥 Check attendees", "📍 Venue directions"]
+        }
+
+    # 12. Reporting a New Incident
+    if any(k in q for k in ["complaint", "report", "photo", "submit", "new issue", "file", "register"]):
+        return {
+            "reply": "Kandippa! 📝 Opening the Incident Report form. You can attach photo proof, auto-detect GPS pin, choose priority, and earn +10 Civic Karma points!",
+            "action": "open_report",
+            "payload": None,
+            "suggestions": ["📷 Attach photo proof", "📍 Adjust pin on map", "🏆 Check karma reward"]
+        }
+
+    # 13. Karma & Citizen Reputation
+    if any(k in q for k in ["karma", "score", "points", "badge", "rank", "champion"]):
+        return {
+            "reply": "Civic Karma unga community trust reputation! 🏆\n• Oru issue report panna +10 Karma points.\n• Mathavanga upvote panna +2 Karma points.\n• Reach 40 Karma for 'Neighborhood Guardian 🛡️' and 80 Karma for 'Civic Champion 🏆'!",
+            "action": None,
+            "payload": None,
+            "suggestions": ["📝 Report a new issue", "👤 View my profile", "🏆 Leaderboard"]
+        }
+
+    # 14. Coimbatore Spots & City Life
+    if any(k in q for k in ["place to visit", "tourist", "coimbatore la enna", "sightseeing", "temple", "food", "park"]):
+        return {
+            "reply": "Coimbatore la sema places irukku! 🌳 VOC Park & Zoo, Valankulam lake promenade, Race Course walking track, Marudhamalai Temple, and Siruvani Waterfalls. Ethavathu civic updates check pannanuma?",
+            "action": None,
+            "payload": None,
+            "suggestions": ["🗺️ Explore map", "🌳 Community drives", "📢 Live feed"]
+        }
+
+    # 15. General Conversational Fallback (Friendly & Contextual)
+    return {
+        "reply": f"Purinjukitten {user_name}! 😊 Nan Tanglish & English rendulayum pesuven. Road potholes, water leaks, nearest hospital, upcoming events, illana emergency helplines pathi kekalam. Enna panna vendum thalaiva?",
+        "action": None,
+        "payload": None,
+        "suggestions": ["💧 Thanni leak aagudhu", "🏥 Nearest hospital", "📝 Report an issue", "🏆 Karma epdi kedaikkum?"]
+    }
+
 
 
 # =========================================================
