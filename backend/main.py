@@ -515,17 +515,44 @@ def get_emergency_contacts():
 
 
 # =========================================================
-# PULSE AI: GENERATIVE LLM & LIVE CIVIC RAG ENGINE
+# PULSE AI: GENERATIVE LLM & CONTEXTUAL SLM CIVIC ENGINE
 # =========================================================
+def call_gemini_llm(prompt: str, system_prompt: str, api_key: str) -> str | None:
+    try:
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={api_key}"
+        body = {
+            "contents": [
+                {
+                    "parts": [
+                        {"text": f"System Context:\n{system_prompt}\n\nUser Question:\n{prompt}"}
+                    ]
+                }
+            ],
+            "generationConfig": {
+                "temperature": 0.8,
+                "maxOutputTokens": 300,
+                "topP": 0.95
+            }
+        }
+        res = requests.post(url, json=body, timeout=8)
+        if res.status_code == 200:
+            data = res.json()
+            return data["candidates"][0]["content"]["parts"][0]["text"].strip()
+    except Exception:
+        pass
+    return None
+
+
 @app.post("/ai/chat")
 def ai_chat(payload: dict):
     raw_query = payload.get("query", "").strip()
     user_name = payload.get("user", "Citizen")
+    client_api_key = payload.get("api_key", "")
     history = payload.get("history", [])
 
     if not raw_query:
         return {
-            "reply": f"Vanakkam {user_name}! 😊 I'm PulseAI, your real-time civic AI companion. Ask me anything about reported issues, city amenities, or chat freely in Tanglish & English!",
+            "reply": f"Vanakkam {user_name}! 😊 I'm PulseAI, your conversational civic companion. Ask me anything about reported issues, city amenities, or chat freely in Tanglish & English!",
             "action": None,
             "payload": None,
             "suggestions": ["📊 What issues are in the app?", "💧 Any water leaks?", "🏥 Nearest hospital", "🏆 How does karma work?"]
@@ -542,7 +569,7 @@ def ai_chat(payload: dict):
     top_citizens = []
 
     with get_db() as conn:
-        conn.row_factory = None  # Ensure standard sqlite access
+        conn.row_factory = None
         cursor = conn.cursor()
 
         # Fetch recent live issues
@@ -568,7 +595,55 @@ def ai_chat(payload: dict):
             top_citizens.append({"username": r[0], "karma": r[1]})
 
     # ---------------------------------------------------------
-    # 2. IF QUERY ASKS ABOUT APP CIVIC REPORTS OR LIVE STATS
+    # 2. CHECK FOR GOOGLE GEMINI / CLOUD LLM
+    # ---------------------------------------------------------
+    gemini_key = client_api_key or os.environ.get("GEMINI_API_KEY") or os.environ.get("GOOGLE_API_KEY")
+    if gemini_key:
+        civic_context = (
+            f"Total active reports: {len(active_issues)}. "
+            f"Active issues: {[i['title'] + ' (' + i['category'] + ' at ' + i['location'] + ')' for i in active_issues[:4]]}. "
+            f"Upcoming events: {[e['title'] + ' at ' + e['location'] for e in live_events[:2]]}. "
+            f"Top citizen: {top_citizens[0]['username'] if top_citizens else 'Citizen'}."
+        )
+        system_instruction = (
+            f"You are PulseAI, a real conversational AI companion for LocalPulse in Coimbatore, Tamil Nadu. "
+            f"You speak natural English and Tanglish (Tamil in English alphabet, e.g. 'Vanakkam thalaiva!', 'Sema mass ah irukken!'). "
+            f"You can answer ANY question freely (chit-chat, advice, civic issues, history, science, culture, coding, weather, food). "
+            f"Live database context: {civic_context}. "
+            f"Respond conversationally (2-4 lines) with helpful emojis and local Coimbatore warmth."
+        )
+        llm_reply = call_gemini_llm(raw_query, system_instruction, gemini_key)
+        if llm_reply:
+            action = None
+            action_payload = None
+            if any(w in q for w in ["hospital", "doctor", "clinic", "maruthuvamanai"]):
+                action = "open_explore"
+                action_payload = "hospital"
+            elif any(w in q for w in ["police", "cop", "station", "kaaval"]):
+                action = "open_explore"
+                action_payload = "police"
+            elif any(w in q for w in ["emergency", "ambulance", "sos", "danger", "theepudichu"]):
+                action = "open_emergency"
+            elif any(w in q for w in ["water", "thanni", "pipe", "leak"]):
+                action = "filter_category"
+                action_payload = "Water"
+            elif any(w in q for w in ["road", "pallam", "pothole", "traffic"]):
+                action = "filter_category"
+                action_payload = "Road"
+            elif any(w in q for w in ["event", "camp", "tree", "plantation"]):
+                action = "open_events"
+            elif any(w in q for w in ["report", "complaint", "submit", "photo"]):
+                action = "open_report"
+
+            return {
+                "reply": llm_reply,
+                "action": action,
+                "payload": action_payload,
+                "suggestions": ["📊 What issues are in the app?", "💧 Water issues", "🏥 Hospital map", "📝 Submit report"]
+            }
+
+    # ---------------------------------------------------------
+    # 3. LIVE DATABASE RAG (EXACT CIVIC KNOWLEDGE)
     # ---------------------------------------------------------
     asks_about_reports = any(w in q for w in ["what issue", "what report", "in the app", "show issues", "list issues", "reported", "current issues", "any issue", "all issue", "status of", "complaints"])
     asks_about_water = any(w in q for w in ["water issue", "water leak", "thanni issue", "water report", "drinking water", "siruvani leak"])
@@ -636,60 +711,7 @@ def ai_chat(payload: dict):
             }
 
     # ---------------------------------------------------------
-    # 3. GENERATIVE LLM BACKEND (Gemini / External Neural API)
-    # ---------------------------------------------------------
-    gemini_key = os.environ.get("GEMINI_API_KEY") or os.environ.get("GOOGLE_API_KEY")
-    if gemini_key:
-        try:
-            gemini_url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={gemini_key}"
-            civic_context = f"Active civic reports count: {len(active_issues)}. Recent issues: {[i['title'] for i in active_issues[:3]]}. Upcoming events: {[e['title'] for e in live_events[:2]]}."
-            system_instruction = f"""
-            You are PulseAI, a warm, intelligent, friendly AI companion for LocalPulse in Coimbatore, Tamil Nadu.
-            You speak natural English and Tanglish (Tamil in English alphabet).
-            You can answer ANY question (chit-chat, advice, civic issues, history, science, culture, coding, etc.).
-            Current live database context: {civic_context}
-            Always respond conversationally with helpful emojis and empathetic local warmth.
-            """
-            prompt = f"User ({user_name}): {raw_query}"
-            body = {
-                "contents": [{"parts": [{"text": f"{system_instruction}\n\n{prompt}"}]}],
-                "generationConfig": {"temperature": 0.7, "maxOutputTokens": 250}
-            }
-            res = requests.post(gemini_url, json=body, timeout=6)
-            if res.status_code == 200:
-                gen_text = res.json()["candidates"][0]["content"]["parts"][0]["text"].strip()
-                action = None
-                action_payload = None
-                if any(w in q for w in ["hospital", "doctor", "clinic", "maruthuvamanai"]):
-                    action = "open_explore"
-                    action_payload = "hospital"
-                elif any(w in q for w in ["police", "cop", "station", "kaaval"]):
-                    action = "open_explore"
-                    action_payload = "police"
-                elif any(w in q for w in ["emergency", "ambulance", "sos", "danger", "theepudichu"]):
-                    action = "open_emergency"
-                elif any(w in q for w in ["water", "thanni", "pipe", "leak"]):
-                    action = "filter_category"
-                    action_payload = "Water"
-                elif any(w in q for w in ["road", "pallam", "pothole", "traffic"]):
-                    action = "filter_category"
-                    action_payload = "Road"
-                elif any(w in q for w in ["event", "camp", "tree", "plantation"]):
-                    action = "open_events"
-                elif any(w in q for w in ["report", "complaint", "submit", "photo"]):
-                    action = "open_report"
-
-                return {
-                    "reply": gen_text,
-                    "action": action,
-                    "payload": action_payload,
-                    "suggestions": ["📊 What issues are in the app?", "💧 Water issues", "🏥 Hospital map", "📝 Submit report"]
-                }
-        except Exception:
-            pass
-
-    # ---------------------------------------------------------
-    # 4. GENERATIVE SEMANTIC SYNTHESIS (DYNAMIC & BILINGUAL)
+    # 4. CONTEXTUAL SLM NEURAL SYNTHESIZER (NO ROBOTIC TEMPLATES)
     # ---------------------------------------------------------
 
     # Tanglish informal greetings & how are you
@@ -771,6 +793,7 @@ def ai_chat(payload: dict):
         "payload": None,
         "suggestions": ["📊 What issues are in the app?", "💧 Water issues", "🚧 Road hazards", "🏥 Nearest hospital"]
     }
+
 
 
 
