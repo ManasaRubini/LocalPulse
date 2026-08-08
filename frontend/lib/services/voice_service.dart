@@ -106,7 +106,9 @@ class PulseAIService {
     String user = "Citizen",
     List<Map<String, String>>? history,
   }) async {
-    final apiKey = await getGeminiApiKey();
+    final apiKey = AppConfig.geminiApiKey.isNotEmpty
+        ? AppConfig.geminiApiKey
+        : await getGeminiApiKey();
 
     try {
       final url = Uri.parse("${AppConfig.baseUrl}/ai/chat");
@@ -131,7 +133,7 @@ class PulseAIService {
           actionType: data["action"],
           payload: data["payload"],
           followUpSuggestions: sugg?.map((e) => e.toString()).toList(),
-          engine: data["engine"] ?? (apiKey != null && apiKey.isNotEmpty ? "Google Gemini 1.5 Flash ✨" : "PulseAI Neural Engine"),
+          engine: data["engine"],
         );
 
         // Auto save to persistent history

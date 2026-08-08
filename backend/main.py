@@ -24,6 +24,12 @@ from models import (
 # Ensure database tables exist
 init_db()
 
+# =========================================================
+# GOOGLE GEMINI API KEY CONFIGURATION (BACKEND)
+# Paste your Google Gemini API Key below (or set GEMINI_API_KEY env var)
+# =========================================================
+DEFAULT_GEMINI_API_KEY = ""
+
 app = FastAPI(
     title="LocalPulse API",
     description="Community Issue Reporting & Local Discovery API",
@@ -597,7 +603,7 @@ def ai_chat(payload: dict):
     # ---------------------------------------------------------
     # 2. CHECK FOR GOOGLE GEMINI / CLOUD LLM
     # ---------------------------------------------------------
-    gemini_key = client_api_key or os.environ.get("GEMINI_API_KEY") or os.environ.get("GOOGLE_API_KEY")
+    gemini_key = client_api_key or DEFAULT_GEMINI_API_KEY or os.environ.get("GEMINI_API_KEY") or os.environ.get("GOOGLE_API_KEY")
     if gemini_key:
         civic_context = (
             f"Total active reports: {len(active_issues)}. "

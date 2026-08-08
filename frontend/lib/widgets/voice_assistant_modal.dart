@@ -257,76 +257,7 @@ class _VoiceAssistantModalState extends State<VoiceAssistantModal> with SingleTi
     }
   }
 
-  void _showGeminiSettingsDialog() {
-    final keyController = TextEditingController();
-    PulseAIService.getGeminiApiKey().then((val) {
-      if (val != null) keyController.text = val;
-    });
 
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-        title: const Row(
-          children: [
-            Icon(Icons.auto_awesome_rounded, color: AppColors.primary),
-            SizedBox(width: 10),
-            Text("Google Gemini AI", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-          ],
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              "PulseAI uses Google Gemini 1.5 Flash for conversational reasoning, Tamil/Tanglish comprehension, and civic RAG.",
-              style: TextStyle(fontSize: 13, color: AppColors.textSecondary),
-            ),
-            const SizedBox(height: 14),
-            TextField(
-              controller: keyController,
-              decoration: InputDecoration(
-                labelText: "Gemini API Key (Optional)",
-                hintText: "AIzaSy...",
-                prefixIcon: const Icon(Icons.key_rounded, color: AppColors.primary),
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(16)),
-                filled: true,
-                fillColor: AppColors.background,
-              ),
-            ),
-            const SizedBox(height: 8),
-            const Text(
-              "Default server Gemini 1.5 Flash engine is enabled automatically.",
-              style: TextStyle(fontSize: 11, color: AppColors.textMuted, fontStyle: FontStyle.italic),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text("Cancel"),
-          ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primary,
-              foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-            ),
-            onPressed: () async {
-              await PulseAIService.setGeminiApiKey(keyController.text.trim());
-              if (!ctx.mounted) return;
-              Navigator.pop(ctx);
-              if (!mounted) return;
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text("✨ Google Gemini settings updated successfully!")),
-              );
-            },
-            child: const Text("Save & Activate"),
-          ),
-        ],
-      ),
-    );
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -395,35 +326,9 @@ class _VoiceAssistantModalState extends State<VoiceAssistantModal> with SingleTi
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Row(
-                      children: [
-                        const Text(
-                          "PulseAI",
-                          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 17, color: AppColors.textPrimary),
-                        ),
-                        const SizedBox(width: 6),
-                        GestureDetector(
-                          onTap: _showGeminiSettingsDialog,
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
-                            decoration: BoxDecoration(
-                              gradient: const LinearGradient(colors: [Color(0xFF4285F4), Color(0xFF9B51E0)]),
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                            child: const Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Icon(Icons.auto_awesome_rounded, color: Colors.white, size: 10),
-                                SizedBox(width: 3),
-                                Text(
-                                  "Gemini 1.5",
-                                  style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ],
+                    const Text(
+                      "PulseAI Assistant",
+                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 17, color: AppColors.textPrimary),
                     ),
                     Text(
                       isListening ? "Listening to your voice..." : "Conversational civic companion in Coimbatore",

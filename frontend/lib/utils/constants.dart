@@ -7,6 +7,12 @@ class AppConfig {
   // For iOS emulator or desktop use 'http://127.0.0.1:8000'
   static const String baseUrl = "https://my-backend-4hfj.onrender.com";
 
+  // =========================================================
+  // GOOGLE GEMINI API KEY CONFIGURATION
+  // Paste your Google Gemini API Key below (e.g. "AIzaSy...")
+  // =========================================================
+  static const String geminiApiKey = "";
+
   // Default Map Coordinates (Coimbatore City Center)
   static const double defaultLatitude = 11.0168;
   static const double defaultLongitude = 76.9558;
