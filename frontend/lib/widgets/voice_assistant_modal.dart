@@ -154,10 +154,10 @@ class _VoiceAssistantModalState extends State<VoiceAssistantModal> with SingleTi
           },
         );
       } else {
-        // Fallback for emulator or desktop: provide focus to text input
+        if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text("Microphone active! Type or speak your question freely."),
+            content: Text("Microphone ready! Type or speak your question freely."),
             duration: Duration(seconds: 2),
           ),
         );
